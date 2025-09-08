@@ -9,67 +9,21 @@ from copy import deepcopy
 from functools import reduce
 from typing import Self
 
-import polars as pl
+import json5
 from unidecode import unidecode
-
-## * Helpers
-
-
-def polars_value_position(df, value):
-    for col in df.columns:
-        row_idx = df[col].index_of(value)
-        if row_idx is not None:
-            return (row_idx, col)
-    return None
-
 
 ## * Constants
 
 # huyền hỏi ngã sắc nặng
 TONE_LIST = ["grave", "hook", "perispomeni", "acute", "dot_below"]
 
-VOWEL_DF = pl.DataFrame(
-    {
-        "unmarked   ": ["a", "ă", "â", "e", "ê", "i", "o", "ô", "ơ", "u", "ư", "y"],
-        "grave      ": ["à", "ằ", "ầ", "è", "ề", "ì", "ò", "ồ", "ờ", "ù", "ừ", "ỳ"],
-        "hook       ": ["ả", "ẳ", "ẩ", "ẻ", "ể", "ỉ", "ỏ", "ổ", "ở", "ủ", "ử", "ỷ"],
-        "perispomeni": ["ã", "ẵ", "ẫ", "ẽ", "ễ", "ĩ", "õ", "ỗ", "ỡ", "ũ", "ữ", "ỹ"],
-        "acute      ": ["á", "ắ", "ấ", "é", "ế", "í", "ó", "ố", "ớ", "ú", "ứ", "ý"],
-        "dot_below  ": ["ạ", "ặ", "ậ", "ẹ", "ệ", "ị", "ọ", "ộ", "ợ", "ụ", "ự", "ỵ"],
-        "ascii      ": ["a", "a", "a", "e", "e", "i", "o", "o", "o", "u", "u", "y"],
-    }
-)
-VOWEL_DF = VOWEL_DF.rename(lambda s: s.strip())  # For pretty alignment above, then trim
-VOWEL_DF = VOWEL_DF.with_columns(
-    (
-        pl.col("unmarked").map_elements(
-            lambda c: {
-                "ă": "breve",
-                "â": "circumflex",
-                "ê": "circumflex",
-                "ô": "circumflex",
-                "ơ": "horn",
-                "ư": "horn",
-            }.get(c, None)
-        )
-    ).alias("alphabet_diacritic")
-)
-# Refer to the non-diacritic's index
-VOWEL_DF = VOWEL_DF.join(
-    VOWEL_DF.with_row_index()
-    .group_by("ascii", maintain_order=True)
-    .agg(pl.col("index").min().alias("ascii_index")),
-    on="ascii",
-    maintain_order="left",
-)
-VOWEL_DF = VOWEL_DF.with_row_index()
+NO_TONAL_VOWEL_LETTERS = "aăâeêioôơuưy"
+TONE_GRAVE_LETTERS = "àằầèềìòồờùừỳ"
+TONE_HOOK_LETTERS = "ảẳẩẻểỉỏổởủửỷ"
+TONE_PERISPOMENI_LETTERS = "ãẵẫẽễĩõỗỡũữỹ"
+TONE_ACUTE_LETTERS = "áắấéếíóốớúứý"
+TONE_DOT_BELOW_LETTERS = "ạặậẹệịọộợụựỵ"
 
-NO_TONAL_VOWEL_LETTERS = "".join(VOWEL_DF["unmarked"])
-TONE_GRAVE_LETTERS = "".join(VOWEL_DF["grave"])
-TONE_HOOK_LETTERS = "".join(VOWEL_DF["hook"])
-TONE_PERISPOMENI_LETTERS = "".join(VOWEL_DF["perispomeni"])
-TONE_ACUTE_LETTERS = "".join(VOWEL_DF["acute"])
-TONE_DOT_BELOW_LETTERS = "".join(VOWEL_DF["dot_below"])
 TONAL_VOWEL_LETTERS = (
     TONE_GRAVE_LETTERS
     + TONE_HOOK_LETTERS
@@ -77,6 +31,7 @@ TONAL_VOWEL_LETTERS = (
     + TONE_ACUTE_LETTERS
     + TONE_DOT_BELOW_LETTERS
 )
+# (1+2)*6 + 5*(2+3)*6 = 168 after NFD decompose
 VOWEL_LETTERS = NO_TONAL_VOWEL_LETTERS + TONAL_VOWEL_LETTERS
 CONSONANT_LETTERS = "bcdfgjklmnpqstvxzhrw" + "đ"
 COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS = ["gi", "qu"]
@@ -84,30 +39,118 @@ COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS = ["gi", "qu"]
 preliminary_rules_file = "preliminary-rules.json"
 try:
     with open(preliminary_rules_file) as f:
-        preliminary_rhyme_table = json.load(f)
+        preliminary_rhyme_table = json5.load(f)
 except Exception:
     preliminary_rhyme_table = dict()
 
+ALPHABET_DIACRITIC_LETTERS = "ăâêôơư"
+# NOTE: "đ" & "Đ" (Letter D with stroke, U+0111 & U+0110) aren't combining characters
+ALPHABET_DIACRITIC_TABLE = {
+    "breve": {
+        "code_point": 0x0306,
+        "letters": "ă",
+    },
+    "circumflex": {
+        "code_point": 0x0302,
+        "letters": "âêô",
+    },
+    "horn": {
+        "code_point": 0x031B,
+        "letters": "ơư",
+    },
+}
+TONE_TABLE = {
+    "unmarked": {
+        "code_point": None,
+        "name": "ngang",
+    },
+    "grave": {
+        "code_point": 0x0300,
+        "name": "huyền",
+    },
+    "hook": {
+        "code_point": 0x0309,
+        "name": "hỏi",
+    },
+    "perispomeni": {
+        "code_point": 0x0303,
+        "name": "ngã",
+    },
+    "acute": {
+        "code_point": 0x0301,
+        "name": "sắc",
+    },
+    "dot_below": {
+        "code_point": 0x0323,
+        "name": "nặng",
+    },
+}
 
-def remove_letter_alphabet_diacritic(char: str):
+## * Helpers
+
+
+def some_truthy(*args) -> bool:
+    """Return the first "truthy" value in ARGS, if none of them return the last
+    one.  Consider values other than False and None truthy, such as 0, [], empty
+    string (\"\"), etc."""
+    for x in args:
+        # python: (0 == False) : True
+        if (not ((False == x) and isinstance(x, bool))) and (not (x is None)):
+            return x
+    return args[-1]
+
+
+def remove_string_all_diacritics(string: str) -> str:
+    # Need external solution anyway, unicodedata.normalize("NFD", string) doesn't convert "đ"
+    return unidecode(string)
+
+
+def remove_string_alphabet_diacritics(string: str):
     "Keep tone."
-    rc = polars_value_position(VOWEL_DF, char)
-    if not rc:
-        return char
-    row, col = rc
-    new_row = VOWEL_DF[row, "ascii_index"]
-    return VOWEL_DF[new_row, col]
+    removing = [chr(v["code_point"]) for v in ALPHABET_DIACRITIC_TABLE.values()]
+    keeping = [
+        char for char in unicodedata.normalize("NFD", string) if not (char in removing)
+    ]
+    return unicodedata.normalize("NFC", ("".join(keeping).replace("đ", "d")))
 
 
-def remove_letter_tone(char: str):
+def remove_string_tone_diacritics(string: str):
     "Keep alphabet diacritic."
-    rc = polars_value_position(VOWEL_DF, char)
-    if not rc:
-        return char
-    return VOWEL_DF[rc[0], "unmarked"]
+    removing = [chr(v["code_point"]) for v in TONE_TABLE.values() if v["code_point"]]
+    keeping = [
+        char for char in unicodedata.normalize("NFD", string) if not (char in removing)
+    ]
+    return unicodedata.normalize("NFC", ("".join(keeping)))
 
 
-### * (Combinative) Vowels
+def get_string_tone(string: str):
+    "Expect an NFC normalized string."
+    table = {chr(v["code_point"]): k for k, v in TONE_TABLE.items() if v["code_point"]}
+    for i in range(len(string)):
+        chars = unicodedata.normalize("NFD", string[i])
+        for char in chars:
+            tone_name = table.get(char)
+            if tone_name:
+                return {
+                    "tone": tone_name,
+                    "position": i,
+                    "code_point": TONE_TABLE[tone_name]["code_point"],
+                }
+    return None
+
+
+def get_string_alphabet_diacritic(string: str):
+    "Expect an NFC normalized string."
+    table = {chr(v["code_point"]): k for k, v in ALPHABET_DIACRITIC_TABLE.items()}
+    for i in range(len(string)):
+        chars = unicodedata.normalize("NFD", string[i])
+        for char in chars:
+            if table.get(char):
+                return {"alphabet_diacritic": table.get(char), "position": i}
+    return None
+
+
+### * Combinative vowels
 
 
 class Rhyme:
@@ -116,10 +159,11 @@ class Rhyme:
 
     _text: str
     _alphabet_diacritic = None
-    _tone = None
-    _letter_df = VOWEL_DF
     _vowel_part = ""
     _suffix_consonant_part = ""
+    _tone_string = ""
+    _tone_name = None
+    _rhyme_table = dict()
 
     tone_position = None
     ascii = ""
@@ -136,27 +180,13 @@ class Rhyme:
     acute = None
     dot_below = None
 
-    def __init__(self, text):
+    def __init__(self, text, rhyme_table=None):
+        text = unicodedata.normalize("NFC", text)
         self._text = text
-
-        found = False
-        for i in range(len(text)):
-            char = text[i]
-            rc = polars_value_position(self._letter_df, char)
-            if rc and (rc[1] in TONE_LIST):
-                self._tone = rc[1]
-                self.tone_position = i
-                found = True
-                break
-        if not found:
-            self._tone = "unmarked"
-
-        for char in text:
-            rc = polars_value_position(self._letter_df, char)
-            if rc:
-                self._alphabet_diacritic = self._letter_df[rc[0], "alphabet_diacritic"]
-                if self._alphabet_diacritic:
-                    break
+        if not rhyme_table:
+            with open(preliminary_rules_file) as f:
+                rhyme_table = json5.load(f)
+        self._rhyme_table = rhyme_table
 
         m = re.match(
             rf"^([{VOWEL_LETTERS}]+)([{CONSONANT_LETTERS}]+)?$",
@@ -166,51 +196,88 @@ class Rhyme:
         self._vowel_part = m.group(1)
         self._suffix_consonant_part = m.group(2) or ""
 
-    def _to_object_maybe(self, txt: str, to_object: bool) -> str | Self:
-        if to_object:
-            return Rhyme(txt)
+        found = get_string_tone(text)
+        if not found:
+            self._tone_string = ""
+            self.tone_position = some_truthy(
+                rhyme_table.get(text, dict()).get("tone_position", None),
+                rhyme_table.get(self._vowel_part, dict()).get("tone_position", None),
+            )
+        else:
+            self.tone_position = found["position"]
+            self._tone_string = chr(found["code_point"])
+            self._tone_name = found["tone"]
+        if len(self._vowel_part) == 1:
+            self.tone_position = 0
+
+        found = get_string_alphabet_diacritic(text)
+        if not found:
+            self._alphabet_diacritic = None
+        else:
+            self._alphabet_diacritic = found["alphabet_diacritic"]
+
+        self.ascii = remove_string_all_diacritics(text)
+        self.no_alphabet_diacritic = remove_string_alphabet_diacritics(text)
+        self.no_tone = remove_string_tone_diacritics(text)
+
+        self.breve = self.with_alphabet_diacritic("breve")
+        self.circumflex = self.with_alphabet_diacritic("circumflex")
+        self.horn = self.with_alphabet_diacritic("horn")
+
+        self.grave = self.with_tone("grave")
+        self.hook = self.with_tone("hook")
+        self.perispomeni = self.with_tone("perispomeni")
+        self.acute = self.with_tone("acute")
+        self.dot_below = self.with_tone("dot_below")
+
+    def without_alphabet_diacritic(self) -> str:
+        txt = "".join(remove_string_alphabet_diacritics(c) for c in self._text)
         return txt
 
-    def without_alphabet_diacritic(self, to_object=False) -> str | Self:
-        txt = "".join(remove_letter_alphabet_diacritic(c) for c in self._text)
-        return self._to_object_maybe(txt, to_object)
+    def without_tone(self) -> str:
+        txt = "".join(remove_string_tone_diacritics(c) for c in self._text)
+        return txt
 
-    def without_tone(self, to_object=False) -> str | Self:
-        txt = "".join(remove_letter_tone(c) for c in self._text)
-        return self._to_object_maybe(txt, to_object)
-
-    def base(self, to_object=False) -> str | Self:
-        txt = unidecode(self._text)
-        self.ascii = txt
-        return self._to_object_maybe(txt, to_object)
-
-    def with_alphabet_diacritic(
-        self, apb_diacriatic: str, rhyme_table: dict, to_object=False
-    ) -> str | Self | None:
-        ascii_vowels = unidecode(self._vowel_part)
-        possible = self._letter_df.filter(
-            pl.col("alphabet_diacritic").is_in([apb_diacriatic]),
-            pl.col("ascii").is_in(list(ascii_vowels)),
-        )
-        if len(possible) == 0:
-            return None
-        new_vowels = []
+    def with_alphabet_diacritic(self, apb_diacriatic: str) -> str:
+        ascii_vowels = remove_string_all_diacritics(self._vowel_part)
+        new_vowel_part_char_list = []
         for i in range(len(ascii_vowels)):
-            char = ascii_vowels[i]
+            char_as_ascii = ascii_vowels[i]
+            new_char = unicodedata.normalize(
+                "NFC",
+                char_as_ascii
+                + chr(ALPHABET_DIACRITIC_TABLE[apb_diacriatic]["code_point"]),
+            )
             # a duplicate ASCII vowel in a rhyme don't get have diacritics ("ưu", "ươu")
-            if char in ascii_vowels[:i]:
-                new_vowels += [char]
+            if char_as_ascii in ascii_vowels[:i]:
+                new_vowel_part_char_list += [char_as_ascii]
+            # doesn't exist in the alphabet
+            elif new_char not in VOWEL_LETTERS:
+                new_vowel_part_char_list += [self._vowel_part[i]]
             else:
-                new_vowel_search = possible.filter(pl.col("ascii").is_in([char]))
-                if len(new_vowel_search) > 0:
-                    new_vowels += [new_vowel_search[0, self._tone]]
-                else:
-                    new_vowels += [self._vowel_part[i]]
-        retval = "".join(new_vowels) + self._suffix_consonant_part
-        return retval
+                new_vowel_part_char_list += [new_char]
+                # If at tone position (that only appears on vowels), add the tone code point to be normalized later
+                if self._tone_name and self.tone_position == i:
+                    new_vowel_part_char_list += [self._tone_string]
+        vowel_part_new = unicodedata.normalize("NFC", "".join(new_vowel_part_char_list))
+        if not (
+            (len(vowel_part_new) == 1 and vowel_part_new in VOWEL_LETTERS)
+            or self._rhyme_table.get(remove_string_tone_diacritics(vowel_part_new))
+        ):
+            return self._text
+        return vowel_part_new + self._suffix_consonant_part
 
-    def with_tone(self, tone: str, to_object=False) -> str | Self:
-        return tone.code_point
+    def with_tone(self, tone: str) -> str:
+        if self.tone_position is None:
+            return self._text
+        tone_pos = self.tone_position
+        old_char_with_tone = self._text[self.tone_position]
+        new_char_with_tone = remove_string_tone_diacritics(old_char_with_tone) + chr(
+            TONE_TABLE[tone]["code_point"]
+        )
+        new_char_with_tone = unicodedata.normalize("NFC", new_char_with_tone)
+        retval = self._text[:tone_pos] + new_char_with_tone + self._text[tone_pos + 1 :]
+        return retval
 
 
 ## * Process
@@ -225,11 +292,16 @@ def get_words_from_dictionary():
         )
     with open(dict_filename) as f:
         words = f.read().splitlines()
+    with open("exclude.dic") as f:
+        exclude_words = f.read().splitlines()
     # Ignore words with upper case letter and numbers
     words = [
         word
         for word in words
-        if (not (any(map(lambda c: c.isupper(), word)) or re.search(r"[0-9]", word)))
+        if (
+            (not (any(map(lambda c: c.isupper(), word)) or re.search(r"[0-9]", word)))
+            and (not (word in exclude_words))
+        )
     ]
     return words
 
@@ -275,29 +347,46 @@ def get_vowels_and_consonants(words):
 
 def main():
     words = get_words_from_dictionary()
-    prefix_consonants, rhymes, tonal_combin_vowels, suffix_consonant = (
+    prefix_consonants, tonal_rhymes, tonal_combin_vowels, suffix_consonant = (
         get_vowels_and_consonants(words)
     )
 
-    no_tonal_combin_vowels = set(
-        "".join(map(remove_letter_tone, cvowel)) for cvowel in tonal_combin_vowels
+    new_rhyme_table_keys = (
+        []  #
+        # + tonal_combin_vowels  # exclude suffix consonants
+        + tonal_rhymes  # include suffix consonants
     )
 
-    assert (dict() == preliminary_rhyme_table) or (
-        list(preliminary_rhyme_table.keys()) == no_tonal_combin_vowels
-    )
+    with open("./manual-tone-positions.json", encoding="utf-8") as f:
+        manual_tone_positions = json5.load(f)
 
-    rhyme_objs = [Rhyme(s) for s in tonal_combin_vowels]
-    im_rhyme_table = deepcopy(preliminary_rhyme_table)
-    for rhyme in rhyme_objs:
-        if im_rhyme_table.get(rhyme.without_tone()) is None:
-            im_rhyme_table[rhyme.without_tone()] = dict()
+    rhyme_table = dict()
+    for rhyme in new_rhyme_table_keys:
+        rhyme_no_tone = remove_string_tone_diacritics(rhyme)
+        tone_info = get_string_tone(rhyme)
+        manual_tone_pos = manual_tone_positions.get(rhyme_no_tone)
+        if rhyme_table.get(rhyme_no_tone) is None:
+            rhyme_table[rhyme_no_tone] = dict()
         # Mark tone position of non tonal rhymes using their tonal variants
-        im_rhyme_table[rhyme.without_tone()]["tone_position"] = rhyme.tone_position
+        if manual_tone_pos is not None:
+            rhyme_table[rhyme_no_tone]["tone_position"] = manual_tone_pos
+        elif rhyme_table[rhyme_no_tone].get("tone_position") is None and tone_info:
+            rhyme_table[rhyme_no_tone]["tone_position"] = tone_info["position"]
 
-    if not os.path.exists(preliminary_rules_file):
+    rhyme_table_no_tone = {
+        k: v for (k, v) in rhyme_table.items() if not get_string_tone(k)
+    }
+    if True:
         with open(preliminary_rules_file, "w", encoding="utf8") as f:
-            json.dump(im_rhyme_table, f, ensure_ascii=False, indent=2)
+            json.dump(rhyme_table_no_tone, f, ensure_ascii=False, indent=2)
+
+    rhyme_objs = [Rhyme(rhyme, rhyme_table) for rhyme in new_rhyme_table_keys]
+    rhyme_rules = {
+        ro._text: {k: v for k, v in ro.__dict__.items() if not k.startswith("_")}
+        for ro in rhyme_objs
+    }
+    with open("rhyme-rules.json", "w") as f:
+        json.dump(rhyme_rules, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":

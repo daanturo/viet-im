@@ -1,2 +1,2 @@
 unidecode
-polars                          # May sound funny, but for named columns
+json5
