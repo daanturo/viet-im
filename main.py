@@ -12,8 +12,20 @@ from typing import Self
 import polars as pl
 from unidecode import unidecode
 
+## * Helpers
+
+
+def polars_value_position(df, value):
+    for col in df.columns:
+        row_idx = df[col].index_of(value)
+        if row_idx is not None:
+            return (row_idx, col)
+    return None
+
+
 ## * Constants
 
+# huyền hỏi ngã sắc nặng
 TONE_LIST = ["grave", "hook", "perispomeni", "acute", "dot_below"]
 
 VOWEL_DF = pl.DataFrame(
@@ -52,7 +64,7 @@ VOWEL_DF = VOWEL_DF.join(
 )
 VOWEL_DF = VOWEL_DF.with_row_index()
 
-NON_TONAL_VOWEL_LETTERS = "".join(VOWEL_DF["unmarked"])
+NO_TONAL_VOWEL_LETTERS = "".join(VOWEL_DF["unmarked"])
 TONE_GRAVE_LETTERS = "".join(VOWEL_DF["grave"])
 TONE_HOOK_LETTERS = "".join(VOWEL_DF["hook"])
 TONE_PERISPOMENI_LETTERS = "".join(VOWEL_DF["perispomeni"])
@@ -65,15 +77,16 @@ TONAL_VOWEL_LETTERS = (
     + TONE_ACUTE_LETTERS
     + TONE_DOT_BELOW_LETTERS
 )
+VOWEL_LETTERS = NO_TONAL_VOWEL_LETTERS + TONAL_VOWEL_LETTERS
 CONSONANT_LETTERS = "bcdfgjklmnpqstvxzhrw" + "đ"
 COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS = ["gi", "qu"]
 
-preliminary_rules_file = "preliminary_rhymes.json"
+preliminary_rules_file = "preliminary-rules.json"
 try:
     with open(preliminary_rules_file) as f:
-        rhyme_table = json.load(f)
+        preliminary_rhyme_table = json.load(f)
 except Exception:
-    rhyme_table = dict()
+    preliminary_rhyme_table = dict()
 
 
 def remove_letter_alphabet_diacritic(char: str):
@@ -92,17 +105,6 @@ def remove_letter_tone(char: str):
     if not rc:
         return char
     return VOWEL_DF[rc[0], "unmarked"]
-
-
-## * Helpers
-
-
-def polars_value_position(df, value):
-    for col in df.columns:
-        row_idx = df[col].index_of(value)
-        if row_idx is not None:
-            return (row_idx, col)
-    return None
 
 
 ### * (Combinative) Vowels
@@ -157,7 +159,7 @@ class Rhyme:
                     break
 
         m = re.match(
-            rf"^([{NON_TONAL_VOWEL_LETTERS + TONAL_VOWEL_LETTERS}]+)([{CONSONANT_LETTERS}]+)?$",
+            rf"^([{VOWEL_LETTERS}]+)([{CONSONANT_LETTERS}]+)?$",
             text,
         )
         assert m.group(1)
@@ -205,8 +207,7 @@ class Rhyme:
                 else:
                     new_vowels += [self._vowel_part[i]]
         retval = "".join(new_vowels) + self._suffix_consonant_part
-        # TODO: check if valid
-        return reval
+        return retval
 
     def with_tone(self, tone: str, to_object=False) -> str | Self:
         return tone.code_point
@@ -223,15 +224,13 @@ def get_words_from_dictionary():
             filename=dict_filename,
         )
     with open(dict_filename) as f:
-        words = f.readlines()
-
+        words = f.read().splitlines()
     # Ignore words with upper case letter and numbers
     words = [
         word
         for word in words
         if (not (any(map(lambda c: c.isupper(), word)) or re.search(r"[0-9]", word)))
     ]
-    words = [word.removesuffix("\n") for word in words]
     return words
 
 
@@ -249,13 +248,12 @@ def get_vowels_and_consonants(words):
 
     prefix_consonants = set(COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS)
     rhymes = set()
-    tonal_vowels = set()
+    tonal_combin_vowels = set()
     suffix_consonants = set()
-    non_tonal_rhymes = set()
 
     for van in van_list:
         m = re.match(
-            rf"^([{CONSONANT_LETTERS}]+)?(([{NON_TONAL_VOWEL_LETTERS + TONAL_VOWEL_LETTERS}]+)([{CONSONANT_LETTERS}]+)?)$",
+            rf"^([{CONSONANT_LETTERS}]+)?(([{VOWEL_LETTERS}]+)([{CONSONANT_LETTERS}]+)?)$",
             van,
         )
         if m:
@@ -263,38 +261,43 @@ def get_vowels_and_consonants(words):
                 prefix_consonants.add(m.group(1))
             rhymes.add(m.group(2))
             if m.group(3):
-                tonal_vowels.add(m.group(3))
+                tonal_combin_vowels.add(m.group(3))
             if m.group(4):
                 suffix_consonants.add(m.group(4))
-
-    for rhyme in rhymes:
-        non_tonal_rhymes.add("".join(map(remove_letter_tone, rhyme)))
 
     return (
         sorted(prefix_consonants),
         sorted(rhymes),
-        sorted(tonal_vowels),
+        sorted(tonal_combin_vowels),
         sorted(suffix_consonants),
-        sorted(non_tonal_rhymes),
     )
 
 
 def main():
     words = get_words_from_dictionary()
-    prefix_consonants, rhymes, tonal_vowels, suffix_consonants, non_tonal_rhymes = (
+    prefix_consonants, rhymes, tonal_combin_vowels, suffix_consonant = (
         get_vowels_and_consonants(words)
     )
 
-    assert (dict() == rhyme_table) or (list(rhyme_table.keys()) == non_tonal_rhymes)
+    no_tonal_combin_vowels = set(
+        "".join(map(remove_letter_tone, cvowel)) for cvowel in tonal_combin_vowels
+    )
 
-    rhyme_objs = [Rhyme(s) for s in rhymes]
-    im_lookup_table = deepcopy(rhyme_table)
+    assert (dict() == preliminary_rhyme_table) or (
+        list(preliminary_rhyme_table.keys()) == no_tonal_combin_vowels
+    )
+
+    rhyme_objs = [Rhyme(s) for s in tonal_combin_vowels]
+    im_rhyme_table = deepcopy(preliminary_rhyme_table)
     for rhyme in rhyme_objs:
-        if im_lookup_table.get(rhyme.without_tone()) is None:
-            im_lookup_table[rhyme.without_tone()] = dict()
-        im_lookup_table[rhyme.without_tone()]["tone_position"] = rhyme.tone_position
-    with open(preliminary_rules_file, "w", encoding="utf8") as f:
-        json.dump(im_lookup_table, f, ensure_ascii=False, indent=2)
+        if im_rhyme_table.get(rhyme.without_tone()) is None:
+            im_rhyme_table[rhyme.without_tone()] = dict()
+        # Mark tone position of non tonal rhymes using their tonal variants
+        im_rhyme_table[rhyme.without_tone()]["tone_position"] = rhyme.tone_position
+
+    if not os.path.exists(preliminary_rules_file):
+        with open(preliminary_rules_file, "w", encoding="utf8") as f:
+            json.dump(im_rhyme_table, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":

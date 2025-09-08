@@ -1,0 +1,173 @@
+{
+  "a": {
+    "tone_position": 0
+  },
+  "ai": {
+    "tone_position": 0
+  },
+  "ao": {
+    "tone_position": 0
+  },
+  "au": {
+    "tone_position": 0
+  },
+  "ay": {
+    "tone_position": 0
+  },
+  "e": {
+    "tone_position": 0
+  },
+  "eo": {
+    "tone_position": 0
+  },
+  "i": {
+    "tone_position": 0
+  },
+  "ia": {
+    "tone_position": 0
+  },
+  "iu": {
+    "tone_position": 0
+  },
+  "iê": {
+    "tone_position": 1
+  },
+  "iêu": {
+    "tone_position": 1
+  },
+  "o": {
+    "tone_position": 0
+  },
+  "oa": {
+    "tone_position": 1
+  },
+  "oai": {
+    "tone_position": 1
+  },
+  "oao": {
+    "tone_position": 1
+  },
+  "oay": {
+    "tone_position": 1
+  },
+  "oe": {
+    "tone_position": 1
+  },
+  "oeo": {
+    "tone_position": 1
+  },
+  "oi": {
+    "tone_position": 0
+  },
+  "oo": {
+    "tone_position": 1
+  },
+  "ou": {
+    "tone_position": null
+  },
+  "oă": {
+    "tone_position": 1
+  },
+  "u": {
+    "tone_position": 0
+  },
+  "ua": {
+    "tone_position": 0
+  },
+  "ui": {
+    "tone_position": 0
+  },
+  "uy": {
+    "tone_position": 1
+  },
+  "uya": {
+    "tone_position": null
+  },
+  "uyê": {
+    "tone_position": 2
+  },
+  "uâ": {
+    "tone_position": 1
+  },
+  "uây": {
+    "tone_position": 1
+  },
+  "uê": {
+    "tone_position": 1
+  },
+  "uô": {
+    "tone_position": 1
+  },
+  "uôi": {
+    "tone_position": 1
+  },
+  "uơ": {
+    "tone_position": 1
+  },
+  "uyu": {
+    "tone_position": 1
+  },
+  "y": {
+    "tone_position": 0
+  },
+  "yê": {
+    "tone_position": 1
+  },
+  "yêu": {
+    "tone_position": 1
+  },
+  "â": {
+    "tone_position": 0
+  },
+  "âu": {
+    "tone_position": 0
+  },
+  "ây": {
+    "tone_position": 0
+  },
+  "ê": {
+    "tone_position": 0
+  },
+  "êu": {
+    "tone_position": 0
+  },
+  "ô": {
+    "tone_position": 0
+  },
+  "ôi": {
+    "tone_position": 0
+  },
+  "ă": {
+    "tone_position": 0
+  },
+  "ơ": {
+    "tone_position": 0
+  },
+  "ơi": {
+    "tone_position": 0
+  },
+  "ư": {
+    "tone_position": 0
+  },
+  "ưa": {
+    "tone_position": 0
+  },
+  "ưu": {
+    "tone_position": 0
+  },
+  "ươ": {
+    "tone_position": 1
+  },
+  "ươi": {
+    "tone_position": 1
+  },
+  "ươu": {
+    "tone_position": 1
+  },
+  "ưi": {
+    "tone_position": 0
+  },
+  "ya": {
+    "tone_position": 0
+  }
+}

@@ -1,5 +1,5 @@
 Goal:
-Make a `lookup-nguyen-am-ghep.jsonc` table, where each key is a "nguyên âm", that describe how that nguyên âm react to changes.
+Make a `lookup-nguyen-am-ghep.jsonc` table, where each key is a "nguyên âm/vần" word part, that describe how that word part reacts to changes.
 
 ```json
 {
@@ -34,3 +34,8 @@ Make a `lookup-nguyen-am-ghep.jsonc` table, where each key is a "nguyên âm", t
   // ...
 }
 ```
+
+`preliminary_rhymes.json`
+
+# References:
+- https://en.wikipedia.org/wiki/Vietnamese_language_and_computers#Unicode_code_points
