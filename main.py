@@ -36,43 +36,61 @@ COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS = ["gi", "qu"]
 ALPHABET_DIACRITIC_LETTERS = "ăâêôơư"
 # NOTE: "đ" & "Đ" (Letter D with stroke, U+0111 & U+0110) aren't combining characters
 ALPHABET_DIACRITIC_TABLE = {
-    "breve": {
-        "code_point": 0x0306,
-        "letters": "ă",
-    },
     "circumflex": {
         "code_point": 0x0302,
         "letters": "âêô",
+        "im_vni": "6",
+        "im_telex": "aeo",
+    },
+    "breve": {
+        "code_point": 0x0306,
+        "letters": "ă",
+        "im_vni": "8",
+        "im_telex": "w",
     },
     "horn": {
         "code_point": 0x031B,
         "letters": "ơư",
+        "im_vni": "7",
+        "im_telex": "w",
     },
 }
 TONE_TABLE = {
     "unmarked": {
         "code_point": None,
         "name": "ngang",
-    },
-    "grave": {
-        "code_point": 0x0300,
-        "name": "huyền",
-    },
-    "hook": {
-        "code_point": 0x0309,
-        "name": "hỏi",
-    },
-    "perispomeni": {
-        "code_point": 0x0303,
-        "name": "ngã",
+        "im_vni": "0",
+        "im_telex": "z",
     },
     "acute": {
         "code_point": 0x0301,
         "name": "sắc",
+        "im_vni": "1",
+        "im_telex": "s",
+    },
+    "grave": {
+        "code_point": 0x0300,
+        "name": "huyền",
+        "im_vni": "2",
+        "im_telex": "f",
+    },
+    "hook": {
+        "code_point": 0x0309,
+        "name": "hỏi",
+        "im_vni": "3",
+        "im_telex": "r",
+    },
+    "perispomeni": {
+        "code_point": 0x0303,
+        "name": "ngã",
+        "im_vni": "4",
+        "im_telex": "x",
     },
     "dot_below": {
         "code_point": 0x0323,
         "name": "nặng",
+        "im_vni": "5",
+        "im_telex": "j",
     },
 }
 
@@ -202,11 +220,11 @@ def get_words_and_rhymes(words=None):
     }
 
 
-def make_preliminary_rhyme_table(combin_vowels):
+def make_preliminary_rhyme_table(rhymes, combin_vowels):
     with open("./manual-tone-positions.json", encoding="utf-8") as f:
         manual_tone_positions = json5.load(f)
     rhyme_table = dict()
-    for rhyme in combin_vowels:
+    for rhyme in rhymes + combin_vowels:
         rhyme_no_tone = remove_string_tone_diacritics(rhyme)
         tone_info = get_string_tone(rhyme)
         manual_tone_pos = manual_tone_positions.get(rhyme_no_tone)
@@ -217,6 +235,11 @@ def make_preliminary_rhyme_table(combin_vowels):
             rhyme_table[rhyme_no_tone]["tone_position"] = manual_tone_pos
         elif rhyme_table[rhyme_no_tone].get("tone_position") is None and tone_info:
             rhyme_table[rhyme_no_tone]["tone_position"] = tone_info["position"]
+    # Some combinative vowels are complete rhymes, note the order
+    for s in combin_vowels:
+        rhyme_table[remove_string_tone_diacritics(s)]["is_complete_rhyme"] = False
+    for s in rhymes:
+        rhyme_table[remove_string_tone_diacritics(s)]["is_complete_rhyme"] = True
     return rhyme_table
 
 
@@ -228,25 +251,20 @@ _preliminary_rhyme_table = None
 # except Exception: pass
 
 
-def _init_preliminary_table(combin_vowels):
-    rhyme_table = make_preliminary_rhyme_table(combin_vowels)
+def _init_preliminary_table(rhymes, combin_vowels):
+    rhyme_table = make_preliminary_rhyme_table(rhymes, combin_vowels)
     rhyme_table_no_tone = {k: v for (k, v) in rhyme_table.items() if not get_string_tone(k)}
-    if True:
-        with open(preliminary_table_file, "w", encoding="utf8") as f:
-            json.dump(rhyme_table_no_tone, f, ensure_ascii=False, indent=2)
-
     return rhyme_table_no_tone
-
-
-_preliminary_rhyme_table_type = "rhymes"  # "combinative_vowels"
 
 
 def get_preliminary_table():
     global _preliminary_rhyme_table
-
     if _preliminary_rhyme_table is None:
         hmap = get_words_and_rhymes()
-        _preliminary_rhyme_table = _init_preliminary_table(hmap[_preliminary_rhyme_table_type])
+        _preliminary_rhyme_table = _init_preliminary_table(hmap["rhymes"], hmap["combinative_vowels"])
+        if True:
+            with open(preliminary_table_file, "w", encoding="utf8") as f:
+                json.dump(_preliminary_rhyme_table, f, ensure_ascii=False, indent=2)
     return _preliminary_rhyme_table
 
 
@@ -255,7 +273,7 @@ class Rhyme:
     of alphabet diacritic and tone, there is only at most one class."""
 
     _text: str
-    _alphabet_diacritic = None
+    _alphabet_diacritic_name = None
     _vowel_part = ""
     _suffix_consonant_part = ""
     _tone_string = ""
@@ -269,12 +287,14 @@ class Rhyme:
     circumflex = None
     horn = None
 
-    no_tone = None
+    unmarked = None
     grave = None
     hook = None
     perispomeni = None
     acute = None
     dot_below = None
+
+    is_complete_rhyme = False
 
     def __init__(self, text):
         text = unicodedata.normalize("NFC", text)
@@ -304,13 +324,13 @@ class Rhyme:
 
         found = get_string_alphabet_diacritic(text)
         if not found:
-            self._alphabet_diacritic = None
+            self._alphabet_diacritic_name = None
         else:
-            self._alphabet_diacritic = found["alphabet_diacritic"]
+            self._alphabet_diacritic_name = found["alphabet_diacritic"]
 
         self.ascii = remove_string_all_diacritics(text)
         self.no_alphabet_diacritic = remove_string_alphabet_diacritics(text)
-        self.no_tone = remove_string_tone_diacritics(text)
+        self.unmarked = remove_string_tone_diacritics(text)
 
         self.breve = self.with_alphabet_diacritic("breve")
         self.circumflex = self.with_alphabet_diacritic("circumflex")
@@ -321,6 +341,8 @@ class Rhyme:
         self.perispomeni = self.with_tone("perispomeni")
         self.acute = self.with_tone("acute")
         self.dot_below = self.with_tone("dot_below")
+
+        self.is_complete_rhyme = (get_preliminary_table())[self.unmarked]["is_complete_rhyme"]
 
     def without_alphabet_diacritic(self) -> str:
         txt = "".join(remove_string_alphabet_diacritics(c) for c in self._text)
@@ -374,13 +396,50 @@ class Rhyme:
 ## * Process
 
 
+def make_im_vni(rhyme_table):
+    diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
+    rules = {
+        "d9": "đ",
+        "đ9": "d9",
+    }
+    for pre in ["", "d", "đ"]:
+        for rhyme in rhyme_table.keys():
+            rhyme_obj = Rhyme(rhyme)
+            for diacritic_name in diacritic_table.keys():
+                trigger = diacritic_table[diacritic_name]["im_vni"]
+                key = pre + rhyme + trigger
+                diact_added_result = rhyme_table[rhyme][diacritic_name]
+                match None:
+                    # A changing case: proceed as stated
+                    case _ if diact_added_result != rhyme:
+                        rules[key] = pre + diact_added_result
+                    # Tone is repeated: remove it and add trigger as-is
+                    case _ if diacritic_name == rhyme_obj._tone_name:
+                        rules[key] = pre + rhyme_obj.without_tone() + trigger
+                    # Alphabet diacritic is repeated: remove it and add trigger as-is
+                    case _ if diacritic_name == rhyme_obj._alphabet_diacritic_name:
+                        rules[key] = pre + rhyme_obj.without_alphabet_diacritic() + trigger
+                    # Invalid diacritic: add the trigger as-is
+                    case _:
+                        rules[key] = key
+            if pre in ["d", "đ"]:
+                rules["d" + rhyme + "9"] = "đ" + rhyme
+                rules["đ" + rhyme + "9"] = "d" + rhyme + "9"
+    rules = dict(sorted(rules.items()))
+    with open("generated-im-vni.json", "w") as f:
+        json.dump(rules, f, ensure_ascii=False, indent=2)
+    return rules
+
+
 def main():
     prelim_table = get_preliminary_table()
     hmap = get_words_and_rhymes()
-    rhyme_objs = [Rhyme(rhyme) for rhyme in hmap["rhymes"]]
+    rhyme_objs = [Rhyme(rhyme) for rhyme in sorted(set(hmap["rhymes"] + hmap["combinative_vowels"]))]
+    # Make public properties dict keys
     rhyme_table = {ro._text: {k: v for k, v in ro.__dict__.items() if not k.startswith("_")} for ro in rhyme_objs}
     with open("generated-rhyme-table.json", "w") as f:
         json.dump(rhyme_table, f, ensure_ascii=False, indent=2)
+    make_im_vni(rhyme_table)
 
 
 if __name__ == "__main__":

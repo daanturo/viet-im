@@ -19,7 +19,7 @@ Make a `rhyme-rules.json` table, where each key is a "nguyên âm/vần" word pa
     "tone_position": 1, // 0-based indexing
 
     // không thanh điệu (tone)
-    "no_tone": "ươu",
+    "unmarked": "ươu",
     // huyền
     "grave": "ườu",
     // hỏi
@@ -30,6 +30,9 @@ Make a `rhyme-rules.json` table, where each key is a "nguyên âm/vần" word pa
     "acute": "ướu", // same->remove, vni: "ươu1", telex: "ươus"
     // nặng
     "dot_below": "ượu",
+
+    // Doesn't need suffixxing consonants to be spellable
+    "is_complete_rhyme": true,
   }
   // ...
 }

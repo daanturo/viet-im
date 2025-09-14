@@ -1,497 +1,702 @@
 {
   "a": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ai": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "am": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "an": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ang": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "anh": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ao": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "au": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ay": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "e": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "em": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "en": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "eng": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "eo": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "i": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ia": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "im": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "in": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ing": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "inh": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "it": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "iu": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "iêm": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "iên": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "iêng": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "iêu": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "iêc": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "iêp": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "iêt": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "o": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "oa": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oai": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oan": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oang": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oanh": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oao": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oay": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oe": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oen": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oeo": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oi": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "om": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "on": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ong": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "oong": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oam": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oac": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oach": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oat": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oet": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ooc": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oăm": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oăn": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oăng": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oap": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oăc": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "oăt": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "u": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ua": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ui": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "um": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "un": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ung": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "uy": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uya": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uyn": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uynh": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uyên": {
-    "tone_position": 2
+    "tone_position": 2,
+    "is_complete_rhyme": true
   },
   "uyêt": {
-    "tone_position": 2
+    "tone_position": 2,
+    "is_complete_rhyme": true
   },
   "uân": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uâng": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uây": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uê": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uênh": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uôi": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uôm": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uôn": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uông": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uych": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uyt": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uơ": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uât": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uêch": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uôc": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uôt": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "uyu": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "y": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "yên": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "yêng": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "yêu": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "yêm": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "yêt": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ac": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ach": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ap": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "at": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "âm": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ân": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "âng": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "âu": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ây": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ec": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ep": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "et": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ê": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êm": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ên": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êng": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ênh": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êt": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êu": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ich": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ip": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "oc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "op": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ot": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ô": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ôi": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ôm": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ôn": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ông": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "uc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "up": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ut": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ynh": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "yt": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ăm": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ăn": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ăng": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ơ": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ơi": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ơm": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ơn": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ư": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưa": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưn": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưng": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưu": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ươi": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ươm": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ươn": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ương": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ươu": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ươc": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ươp": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "ươt": {
-    "tone_position": 1
+    "tone_position": 1,
+    "is_complete_rhyme": true
   },
   "âc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "âp": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ât": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ăc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ăp": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ăt": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êch": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "êp": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ôc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ôp": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ôt": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ơp": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ơt": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưc": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưt": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưm": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ưi": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
   },
   "ya": {
-    "tone_position": 0
+    "tone_position": 0,
+    "is_complete_rhyme": true
+  },
+  "iê": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
+  },
+  "oo": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
+  },
+  "oă": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
+  },
+  "uyê": {
+    "tone_position": 2,
+    "is_complete_rhyme": false
+  },
+  "uâ": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
+  },
+  "uô": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
+  },
+  "yê": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
+  },
+  "â": {
+    "tone_position": 0,
+    "is_complete_rhyme": false
+  },
+  "ă": {
+    "tone_position": 0,
+    "is_complete_rhyme": false
+  },
+  "ươ": {
+    "tone_position": 1,
+    "is_complete_rhyme": false
   }
 }
