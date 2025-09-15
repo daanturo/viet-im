@@ -4,7 +4,7 @@ import os
 import re
 import sys
 import unicodedata
-import urllib.request
+import urllib
 from copy import deepcopy
 from functools import reduce
 from operator import itemgetter
@@ -26,11 +26,7 @@ TONE_ACUTE_LETTERS = "áắấéếíóốớúứý"
 TONE_DOT_BELOW_LETTERS = "ạặậẹệịọộợụựỵ"
 
 TONAL_VOWEL_LETTERS = (
-    TONE_GRAVE_LETTERS
-    + TONE_HOOK_LETTERS
-    + TONE_PERISPOMENI_LETTERS
-    + TONE_ACUTE_LETTERS
-    + TONE_DOT_BELOW_LETTERS
+    TONE_GRAVE_LETTERS + TONE_HOOK_LETTERS + TONE_PERISPOMENI_LETTERS + TONE_ACUTE_LETTERS + TONE_DOT_BELOW_LETTERS
 )
 # (1+2)*6 + 5*(2+3)*6 = 168 after NFD decompose
 VOWEL_LETTERS = NO_TONAL_VOWEL_LETTERS + TONAL_VOWEL_LETTERS
@@ -120,18 +116,14 @@ def remove_string_all_diacritics(string: str) -> str:
 def remove_string_alphabet_diacritics(string: str):
     "Keep tone."
     removing = [chr(v["code_point"]) for v in ALPHABET_DIACRITIC_TABLE.values()]
-    keeping = [
-        char for char in unicodedata.normalize("NFD", string) if not (char in removing)
-    ]
+    keeping = [char for char in unicodedata.normalize("NFD", string) if not (char in removing)]
     return unicodedata.normalize("NFC", ("".join(keeping).replace("đ", "d")))
 
 
 def remove_string_tone_diacritics(string: str):
     "Keep alphabet diacritic."
     removing = [chr(v["code_point"]) for v in TONE_TABLE.values() if v["code_point"]]
-    keeping = [
-        char for char in unicodedata.normalize("NFD", string) if not (char in removing)
-    ]
+    keeping = [char for char in unicodedata.normalize("NFD", string) if not (char in removing)]
     return unicodedata.normalize("NFC", ("".join(keeping)))
 
 
@@ -181,8 +173,7 @@ def _get_words_from_dictionary():
         word
         for word in words
         if (
-            (not (any(map(lambda c: c.isupper(), word)) or re.search(r"[0-9]", word)))
-            and (not (word in exclude_words))
+            (not (any(map(lambda c: c.isupper(), word)) or re.search(r"[0-9]", word))) and (not (word in exclude_words))
         )
     ]
     return words
@@ -268,9 +259,7 @@ _preliminary_rhyme_table = None
 
 def _init_preliminary_table(rhymes, combin_vowels):
     rhyme_table = make_preliminary_rhyme_table(rhymes, combin_vowels)
-    rhyme_table_no_tone = {
-        k: v for (k, v) in rhyme_table.items() if not get_string_tone(k)
-    }
+    rhyme_table_no_tone = {k: v for (k, v) in rhyme_table.items() if not get_string_tone(k)}
     return rhyme_table_no_tone
 
 
@@ -278,9 +267,7 @@ def get_preliminary_table():
     global _preliminary_rhyme_table
     if _preliminary_rhyme_table is None:
         hmap = get_words_and_rhymes()
-        _preliminary_rhyme_table = _init_preliminary_table(
-            hmap["rhymes"], hmap["combinative_vowels"]
-        )
+        _preliminary_rhyme_table = _init_preliminary_table(hmap["rhymes"], hmap["combinative_vowels"])
         if True:
             with open(preliminary_table_file, "w", encoding="utf8") as f:
                 json.dump(_preliminary_rhyme_table, f, ensure_ascii=False, indent=2)
@@ -332,9 +319,7 @@ class Rhyme:
             self._tone_string = ""
             self.tone_position = some_truthy(
                 (get_preliminary_table()).get(text, dict()).get("tone_position", None),
-                (get_preliminary_table())
-                .get(self._vowel_part, dict())
-                .get("tone_position", None),
+                (get_preliminary_table()).get(self._vowel_part, dict()).get("tone_position", None),
             )
         else:
             self.tone_position = found["position"]
@@ -380,8 +365,7 @@ class Rhyme:
             char_as_ascii = ascii_vowels[i]
             new_char = unicodedata.normalize(
                 "NFC",
-                char_as_ascii
-                + chr(ALPHABET_DIACRITIC_TABLE[apb_diacriatic]["code_point"]),
+                char_as_ascii + chr(ALPHABET_DIACRITIC_TABLE[apb_diacriatic]["code_point"]),
             )
             # a duplicate ASCII vowel in a rhyme don't get have diacritics ("ưu", "ươu"), "oo" can have tones but not alphabetic diacritics
             if char_as_ascii in ascii_vowels[:i]:
@@ -409,9 +393,7 @@ class Rhyme:
             return self._text
         tone_pos = self.tone_position
         old_char_with_tone = self._text[self.tone_position]
-        new_char_with_tone = remove_string_tone_diacritics(old_char_with_tone) + chr(
-            TONE_TABLE[tone]["code_point"]
-        )
+        new_char_with_tone = remove_string_tone_diacritics(old_char_with_tone) + chr(TONE_TABLE[tone]["code_point"])
         new_char_with_tone = unicodedata.normalize("NFC", new_char_with_tone)
         retval = self._text[:tone_pos] + new_char_with_tone + self._text[tone_pos + 1 :]
         return retval
@@ -420,47 +402,9 @@ class Rhyme:
 ## * Process
 
 
-def _make_im(
-    im_name,
-    rhyme_table,
-    initial_rules,
-    d_trigger,
-):
-    diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
-    rules = initial_rules
-    for pre in ["", "d", "đ"]:
-        for rhyme in rhyme_table.keys():
-            rhyme_obj = Rhyme(rhyme)
-            for diacritic_name in diacritic_table.keys():
-                trigger_chars = diacritic_table[diacritic_name][im_name]
-                for trigger in trigger_chars:
-                    key = pre + rhyme + trigger
-                    diact_added_result = rhyme_table[rhyme][diacritic_name]
-                    match None:
-                        # "auo" -> "auo"
-                        case _ if (len(trigger_chars) > 1) and (
-                            not (remove_string_all_diacritics(trigger) in rhyme_obj.ascii)
-                        ):
-                            pass
-                        case _ if diact_added_result != rhyme:
-                            rules[key] = pre + diact_added_result
-                        case _ if diacritic_name == rhyme_obj._tone_name:
-                            rules[key] = pre + rhyme_obj.without_tone() + trigger
-                        case _ if diacritic_name == rhyme_obj._alphabet_diacritic_name:
-                            rules[key] = (
-                                pre + rhyme_obj.without_alphabet_diacritic() + trigger
-                            )
-            if pre in ["d", "đ"]:
-                rules["d" + rhyme + d_trigger] = "đ" + rhyme
-                rules["đ" + rhyme + d_trigger] = "d" + rhyme + "d"
-    rules = dict(sorted(rules.items()))
-    return rules
-
-
 def make_im_vni(rhyme_table):
     diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
     rules = {
-        "dd9": "dd9",  # is this necessary?
         "d9": "đ",
         "đ9": "d9",
     }
@@ -468,66 +412,27 @@ def make_im_vni(rhyme_table):
         for rhyme in rhyme_table.keys():
             rhyme_obj = Rhyme(rhyme)
             for diacritic_name in diacritic_table.keys():
-                trigger_chars = diacritic_table[diacritic_name]["im_vni"]
-                for trigger in trigger_chars:
-                    key = pre + rhyme + trigger
-                    diact_added_result = rhyme_table[rhyme][diacritic_name]
-                    match None:
-                        # A changing case: proceed as stated
-                        case _ if diact_added_result != rhyme:
-                            rules[key] = pre + diact_added_result
-                        # Tone is repeated: remove it and add trigger as-is
-                        case _ if diacritic_name == rhyme_obj._tone_name:
-                            rules[key] = pre + rhyme_obj.without_tone() + trigger
-                        # Alphabet diacritic is repeated: remove it and add trigger as-is
-                        case _ if diacritic_name == rhyme_obj._alphabet_diacritic_name:
-                            rules[key] = (
-                                pre + rhyme_obj.without_alphabet_diacritic() + trigger
-                            )
-                        # Invalid diacritic: add the trigger as-is, no need to specify this rule
-                        # case _: rules[key] = key
-                if pre in ["d", "đ"]:
-                    rules["d" + rhyme + "9"] = "đ" + rhyme
-                    rules["đ" + rhyme + "9"] = "d" + rhyme + "9"
+                trigger = diacritic_table[diacritic_name]["im_vni"]
+                key = pre + rhyme + trigger
+                diact_added_result = rhyme_table[rhyme][diacritic_name]
+                match None:
+                    # A changing case: proceed as stated
+                    case _ if diact_added_result != rhyme:
+                        rules[key] = pre + diact_added_result
+                    # Tone is repeated: remove it and add trigger as-is
+                    case _ if diacritic_name == rhyme_obj._tone_name:
+                        rules[key] = pre + rhyme_obj.without_tone() + trigger
+                    # Alphabet diacritic is repeated: remove it and add trigger as-is
+                    case _ if diacritic_name == rhyme_obj._alphabet_diacritic_name:
+                        rules[key] = pre + rhyme_obj.without_alphabet_diacritic() + trigger
+                    # Invalid diacritic: add the trigger as-is, no need to specify this rule
+                    # case _: rules[key] = key
+            if pre in ["d", "đ"]:
+                rules["d" + rhyme + "9"] = "đ" + rhyme
+                rules["đ" + rhyme + "9"] = "d" + rhyme + "9"
+                # TODO: ye6
     rules = dict(sorted(rules.items()))
     with open("generated-im-vni.json", "w") as f:
-        json.dump(rules, f, ensure_ascii=False, indent=2)
-    return rules
-
-
-def make_im_telex(rhyme_table):
-    diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
-    rules = {
-        "dd": "đ",
-        "đd": "dd",
-    }
-    for pre in ["", "d", "đ"]:
-        for rhyme in rhyme_table.keys():
-            rhyme_obj = Rhyme(rhyme)
-            for diacritic_name in diacritic_table.keys():
-                trigger_chars = diacritic_table[diacritic_name]["im_telex"]
-                for trigger in trigger_chars:
-                    key = pre + rhyme + trigger
-                    diact_added_result = rhyme_table[rhyme][diacritic_name]
-                    match None:
-                        # "auo" -> "auo"
-                        case _ if (len(trigger_chars) > 1) and (
-                            not (remove_string_all_diacritics(trigger) in rhyme_obj.ascii)
-                        ):
-                            pass
-                        case _ if diact_added_result != rhyme:
-                            rules[key] = pre + diact_added_result
-                        case _ if diacritic_name == rhyme_obj._tone_name:
-                            rules[key] = pre + rhyme_obj.without_tone() + trigger
-                        case _ if diacritic_name == rhyme_obj._alphabet_diacritic_name:
-                            rules[key] = (
-                                pre + rhyme_obj.without_alphabet_diacritic() + trigger
-                            )
-            if pre in ["d", "đ"]:
-                rules["d" + rhyme + "d"] = "đ" + rhyme
-                rules["đ" + rhyme + "d"] = "d" + rhyme + "d"
-    rules = dict(sorted(rules.items()))
-    with open("generated-im-telex.json", "w") as f:
         json.dump(rules, f, ensure_ascii=False, indent=2)
     return rules
 
@@ -548,15 +453,10 @@ def main():
     ]
 
     # Make public properties dict keys
-    rhyme_table = {
-        ro._text: {k: v for k, v in ro.__dict__.items() if not k.startswith("_")}
-        for ro in rhyme_objs
-    }
-    rhyme_table = dict(sorted(rhyme_table.items()))
+    rhyme_table = {ro._text: {k: v for k, v in ro.__dict__.items() if not k.startswith("_")} for ro in rhyme_objs}
     with open("generated-rhyme-table.json", "w") as f:
         json.dump(rhyme_table, f, ensure_ascii=False, indent=2)
     make_im_vni(rhyme_table)
-    make_im_telex(rhyme_table)
 
 
 if __name__ == "__main__":
