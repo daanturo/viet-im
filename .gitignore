@@ -1,1 +1,4 @@
 *[A-Z]*.dic
+temp-*
+__pycache__
+*.~*~

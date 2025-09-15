@@ -40,6 +40,10 @@ Make a `rhyme-rules.json` table, where each key is a "nguyên âm/vần" word pa
 
 `preliminary-rules.json` is a starting point that only includes non-tonals vowels and essential information such as tone_position.
 
+# Notes
+
+Beware of "# EXCEPTION:" comments
+
 # References:
 - https://en.wikipedia.org/wiki/Vietnamese_language_and_computers#Unicode_code_points
 - https://github.com/1ec5/hunspell-vi/blob/main/dictionaries/vi-DauMoi.dic
