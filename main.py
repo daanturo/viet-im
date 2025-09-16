@@ -459,25 +459,31 @@ class Rhyme:
             # a duplicate ASCII vowel in a rhyme don't get have diacritics ("ưu", "ươu"), "oo" can have tones but not alphabetic diacritics
             if char_as_ascii in ascii_vowels[:i]:
                 new_vowel_part_char_list += [char_as_ascii]
-            # doesn't exist in the alphabet, return old char, this case may retain old tone
+            # doesn't exist in the alphabet, return old char with tone stripped,
+            # since changing alphabetic diacritic may change the tone position
+            # ("úa"->"uấ"), query and add it back later
             elif new_char not in VOWEL_LETTERS:
-                new_vowel_part_char_list += [self._vowel_part[i]]
+                new_vowel_part_char_list += [
+                    remove_string_tone_diacritics(self._vowel_part[i])
+                ]
             else:
                 new_vowel_part_char_list += [new_char]
-            if (
-                new_char in VOWEL_LETTERS
-                and self.tone_position == i
-                and self._marked_tone_name
-            ):
-                new_vowel_part_char_list += [self._tone_code_point_as_str]
-        retval = unicodedata.normalize("NFC", "".join(new_vowel_part_char_list))
-        retval = retval + self._suffix_consonant_part
+        new_rhyme = "".join(new_vowel_part_char_list) + self._suffix_consonant_part
         if not (
-            (len(retval) == 1 and retval in VOWEL_LETTERS)
-            or ((get_preliminary_table()).get(remove_string_tone_diacritics(retval)))
+            (len(new_rhyme) == 1 and new_rhyme in VOWEL_LETTERS)
+            or ((get_preliminary_table()).get(new_rhyme))
         ):
             return self._text
-        retval = self._prefix_consonant_part + retval
+        if self._marked_tone_name:
+            new_tone_pos = get_preliminary_table()[new_rhyme]["tone_position"]
+            # + 1: combining code point needs to be AFTER the letter
+            new_rhyme = (
+                new_rhyme[: new_tone_pos + 1]
+                + self._tone_code_point_as_str
+                + new_rhyme[new_tone_pos + 1 :]
+            )
+            new_rhyme = unicodedata.normalize("NFC", new_rhyme)
+        retval = self._prefix_consonant_part + new_rhyme
         return retval
 
     def with_tone(self, tone: str) -> str:
@@ -501,13 +507,9 @@ class Rhyme:
 
 
 def _make_im_case(im_name: str, rhyme_table: dict, pre: str, rhyme: str, rules: dict):
-    d_trigger = {"im_vni": "9", "im_telex": "d"}[im_name]
     diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
     rhyme_str = deepcopy(rhyme)
     orig_rhyme_ascii = remove_string_all_diacritics(rhyme_str)
-    if pre in ["d", "đ"] and rhyme_str[0] in VOWEL_LETTERS:
-        rules["d" + rhyme_str + d_trigger] = "đ" + rhyme_str
-        rules["đ" + rhyme_str + d_trigger] = "d" + rhyme_str + d_trigger
     if pre in COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS:
         match None:
             # quu, quuu, quou, quuou are invalid
@@ -549,17 +551,18 @@ def _make_im_case(im_name: str, rhyme_table: dict, pre: str, rhyme: str, rules: 
     return rules
 
 
-# TODO: "doõngw": "doong"? "ic5", yẽu, "ynh", "ua" vs "uan"
-
-
 def _make_im(
     im_name: str,
     rhyme_table: dict,
     initial_rules: dict,
 ):
     rules = initial_rules
+    d_trigger = {"im_vni": "9", "im_telex": "d"}[im_name]
     for rhyme in rhyme_table.keys():
-        for pre in ["", "d", "đ", *COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS]:
+        if rhyme[0] in VOWEL_LETTERS:
+            rules["d" + rhyme + d_trigger] = "đ" + rhyme
+            rules["đ" + rhyme + d_trigger] = "d" + rhyme + d_trigger
+        for pre in ["", *COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS]:
             res = _make_im_case(im_name, rhyme_table, pre, rhyme, rules)
             if res:
                 rules = res
