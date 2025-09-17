@@ -34,12 +34,13 @@ def compare_with_florish_telex():
         for composer in json.loads(Path(floris_file).read_text())["composers"]
         if composer.get("id") == "telex"
     ][0]
+    # We handle d...d -> đ...
     generated = {
         k: v
         for (k, v) in json.loads(Path(generated_file).read_text()).items()
-        if not re.search(r"^[dđ]", k)
+        if not re.search(r"^[dđ][^dđ]", k)
     }
-    Path("temp-rules-diff.json").write_text(
+    Path("generated-rules-diff-this-telex-vs-florish-telex.json").write_text(
         json.dumps(dict_diff(generated, floris), indent=2, ensure_ascii=False)
     )
 
@@ -82,6 +83,39 @@ def save_emacs_quail_rules():
         f.write(")" + "\n")
 
 
+def write_floris_vni_extension():
+    rules = main.make_im_vni()
+    # https://github.com/florisboard/florisboard/wiki/Creating-and-Packaging-Extensions
+    extension = {
+        "$": "ime.extension.keyboard",
+        "meta": {
+            # Can't https://github.com/florisboard/florisboard/wiki/How-to-publish-on-FlorisBoard-Addons#register-account for now
+            "id": "io.github.daanturo.im-viet-rules.vni",
+            "version": "0.1.0",
+            "title": "Vietnamese VNI input method",
+            "description": """Provide the Vietnamese (Tan Ky mode) VNI input method for Florishboard, in addition to the built-in Telex.
+See: https://en.wikipedia.org/wiki/VNI#Input_methods.""",
+            "keywords": ["composer", "input-method"],
+            "maintainers": ["@daanturo"],
+            "license": "mpl-2.0",
+        },
+        "composers": [
+            {
+                "$": "with-rules",
+                # Happy to change the id to just "vni" if accepted upstream.
+                "id": "vni-addon",
+                "label": "VNI",
+                "rules": rules,
+            }
+        ],
+    }
+    with open("florish-im-vni-extension.json", "w") as f:
+        json.dump(extension, f, indent=2, ensure_ascii=False)
+    with open("extension.json", "w") as f:
+        json.dump(extension, f, indent=2, ensure_ascii=False)
+
+
 if __name__ == "__main__":
     compare_with_florish_telex()
     save_emacs_quail_rules()
+    write_floris_vni_extension()

@@ -22,7 +22,7 @@ from unidecode import unidecode
 # huyền hỏi ngã sắc nặng
 TONE_LIST = ["grave", "hook", "perispomeni", "acute", "dot_below"]
 
-NO_TONAL_VOWEL_LETTERS = "aăâeêioôơuưy"
+NO_TONE_VOWEL_LETTERS = "aăâeêioôơuưy"
 TONE_GRAVE_LETTERS = "àằầèềìòồờùừỳ"
 TONE_HOOK_LETTERS = "ảẳẩẻểỉỏổởủửỷ"
 TONE_PERISPOMENI_LETTERS = "ãẵẫẽễĩõỗỡũữỹ"
@@ -37,7 +37,7 @@ TONAL_VOWEL_LETTERS = (
     + TONE_DOT_BELOW_LETTERS
 )
 # (1+2)*6 + 5*(2+3)*6 = 168 after NFD decompose
-VOWEL_LETTERS = NO_TONAL_VOWEL_LETTERS + TONAL_VOWEL_LETTERS
+VOWEL_LETTERS = NO_TONE_VOWEL_LETTERS + TONAL_VOWEL_LETTERS
 CONSONANT_LETTERS = "bcdfgjklmnpqstvxzhrw" + "đ"
 COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS = ("gi", "qu")
 
@@ -303,7 +303,7 @@ def get_words_and_rhymes(words=None):
     )
     # word_set_qu_gi - filterd_set_qu_gi == {'', 'ýt', 'ýnh', 'p', 'ỷnh', 'ỳnh', 'ỵt'}
 
-    # A insignificantly little inefficient to do parsing again, but simple
+    # An insignificantly little inefficient to do parsing again, but simple
     return _parse_words(word_set_1 | filterd_set_qu_gi)
 
 
@@ -506,6 +506,25 @@ class Rhyme:
 ## * Process
 
 
+# EXCEPTION: ?
+def _im_special_rules_for_gi_qu(im_name):
+    table = dict()
+    # "qu" is unresponsive to combining, unlike lone "u"
+    char = ALPHABET_DIACRITIC_TABLE["horn"][im_name]
+    table["qu" + char] = "qu" + char
+    for char in [v[im_name] for v in TONE_TABLE.values() if v["code_point"]]:
+        table["qu" + char] = "qu" + char
+    # "gi"+tone+vowel, tone is repositioned -> "gi"+vowel+tone
+    for tone_cp in [
+        tone["code_point"] for tone in TONE_TABLE.values() if tone["code_point"]
+    ]:
+        for new_char in filter(lambda x: x not in "iy", NO_TONE_VOWEL_LETTERS):
+            key = unicodedata.normalize("NFC", "gi" + chr(tone_cp) + new_char)
+            val = unicodedata.normalize("NFC", "gi" + new_char + chr(tone_cp))
+            table[key] = val
+    return table
+
+
 def _make_im_case(im_name: str, rhyme_table: dict, pre: str, rhyme: str, rules: dict):
     diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
     rhyme_str = deepcopy(rhyme)
@@ -566,11 +585,13 @@ def _make_im(
             res = _make_im_case(im_name, rhyme_table, pre, rhyme, rules)
             if res:
                 rules = res
+    rules |= _im_special_rules_for_gi_qu(im_name)
     rules = dict(sorted(rules.items()))
     return rules
 
 
-def make_im_vni(rhyme_table):
+def make_im_vni(rhyme_table=None):
+    rhyme_table = rhyme_table or make_full_rhyme_table()
     rules = {
         "d9": "đ",
         "đ9": "d9",
@@ -582,7 +603,8 @@ def make_im_vni(rhyme_table):
     return rules
 
 
-def make_im_telex(rhyme_table):
+def make_im_telex(rhyme_table=None):
+    rhyme_table = rhyme_table or make_full_rhyme_table()
     """Currently not supported: repositioning tones ("ghìê": "ghiề", etc.), it's
     weird, why not type tones at the end of word?"""
     rules = {

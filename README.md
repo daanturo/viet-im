@@ -1,48 +1,9 @@
-Goal:
-Make a `rhyme-rules.json` table, where each key is a "nguyên âm/vần" word part, that describe how that word part reacts to changes.
+Rules for the Vietnamese input methods [VNI](https://en.wikipedia.org/wiki/VNI) (and additionally Telex for comparison purpose).
 
-```json
-{
-  // ...
-  "ướu": {
-    "ascii": "uou",
+Producing rules was done by parsing words from the [Hunspell-vi](https://github.com/1ec5/hunspell-vi) dictionary and written to `generated-im-vni.json`, `generated-im-telex.json`.
 
-    // không dấu
-    "no_alphabet_diacritic": "uóu",
-    // "ă"
-    "breve": "ướu", // unresponsive
-    // "âêô"
-    "circumflex": "ướu", // unresponsive
-    // "ơư"
-    "horn": "ướu", // same->remove, vni: "uóu7", telex: "uóuw"
 
-    "tone_position": 1, // 0-based indexing
-
-    // không thanh điệu (tone)
-    "unmarked": "ươu",
-    // huyền
-    "grave": "ườu",
-    // hỏi
-    "hook": "ưởu",
-    // ngã
-    "perispomeni": "ưỡu",
-    // sắc
-    "acute": "ướu", // same->remove, vni: "ươu1", telex: "ươus"
-    // nặng
-    "dot_below": "ượu",
-
-    // Doesn't need suffixxing consonants to be spellable
-    "is_complete_rhyme": true,
-  }
-  // ...
-}
-```
-
-`preliminary-rules.json` is a starting point that only includes non-tonals vowels and essential information such as tone_position.
-
-# Notes
-
-Beware of "# EXCEPTION:" comments
+For Android [Florisboard](https://github.com/florisboard/florisboard) users, import `florish-im-vni-extension.flex` to type with VNI.
 
 # References:
 - https://en.wikipedia.org/wiki/Vietnamese_language_and_computers#Unicode_code_points
