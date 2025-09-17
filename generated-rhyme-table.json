@@ -3729,7 +3729,7 @@
     "no_alphabet_diacritic": "uop",
     "unmarked": "uop",
     "breve": "uop",
-    "circumflex": "uop",
+    "circumflex": "uôp",
     "horn": "ươp",
     "grave": "uop",
     "hook": "uop",
@@ -4863,7 +4863,7 @@
     "no_alphabet_diacritic": "uóp",
     "unmarked": "uop",
     "breve": "uóp",
-    "circumflex": "uóp",
+    "circumflex": "uốp",
     "horn": "ướp",
     "grave": "uóp",
     "hook": "uóp",
@@ -4982,6 +4982,20 @@
     "perispomeni": "uỗng",
     "acute": "uống",
     "dot_below": "uộng"
+  },
+  "uôp": {
+    "tone_position": 1,
+    "ascii": "uop",
+    "no_alphabet_diacritic": "uop",
+    "unmarked": "uôp",
+    "breve": "uôp",
+    "circumflex": "uôp",
+    "horn": "ươp",
+    "grave": "uôp",
+    "hook": "uôp",
+    "perispomeni": "uôp",
+    "acute": "uốp",
+    "dot_below": "uộp"
   },
   "uôt": {
     "tone_position": 1,
@@ -5983,7 +5997,7 @@
     "no_alphabet_diacritic": "uọp",
     "unmarked": "uop",
     "breve": "uọp",
-    "circumflex": "uọp",
+    "circumflex": "uộp",
     "horn": "ượp",
     "grave": "uọp",
     "hook": "uọp",
@@ -6186,6 +6200,20 @@
     "perispomeni": "uỗng",
     "acute": "uống",
     "dot_below": "uộng"
+  },
+  "uốp": {
+    "tone_position": 1,
+    "ascii": "uop",
+    "no_alphabet_diacritic": "uóp",
+    "unmarked": "uôp",
+    "breve": "uốp",
+    "circumflex": "uốp",
+    "horn": "ướp",
+    "grave": "uốp",
+    "hook": "uốp",
+    "perispomeni": "uốp",
+    "acute": "uốp",
+    "dot_below": "uộp"
   },
   "uốt": {
     "tone_position": 1,
@@ -6494,6 +6522,20 @@
     "perispomeni": "uỗng",
     "acute": "uống",
     "dot_below": "uộng"
+  },
+  "uộp": {
+    "tone_position": 1,
+    "ascii": "uop",
+    "no_alphabet_diacritic": "uọp",
+    "unmarked": "uôp",
+    "breve": "uộp",
+    "circumflex": "uộp",
+    "horn": "ượp",
+    "grave": "uộp",
+    "hook": "uộp",
+    "perispomeni": "uộp",
+    "acute": "uốp",
+    "dot_below": "uộp"
   },
   "uột": {
     "tone_position": 1,

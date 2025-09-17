@@ -1,0 +1,7 @@
+{
+  "ing": 0, // Not in Vietnamese but in dict: ping ?
+  "uya": 1,
+  "uyn": 1,
+  "uâng": 1,
+  "uôp": 1 // Not in dictionary, but some existing rules have so let's add this
+}
