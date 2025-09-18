@@ -1,8 +1,12 @@
+import itertools
 import json
 import os
 import re
+import shutil
+import subprocess
 import tempfile
 import urllib.request
+import zipfile
 from pathlib import Path
 
 import main
@@ -22,7 +26,7 @@ def dict_diff(dict1, dict2):
     return [dict(sorted(diff1.items())), dict(sorted(diff2.items()))]
 
 
-def compare_with_florish_telex():
+def compare_with_floris_telex():
     url = "https://raw.githubusercontent.com/florisboard/florisboard/refs/heads/main/app/src/main/assets/ime/keyboard/org.florisboard.composers/extension.json"
     floris_file = os.path.join(tempfile.gettempdir(), "floris-extension.json")
     generated_file = os.path.abspath("generated-im-telex.json")
@@ -40,8 +44,16 @@ def compare_with_florish_telex():
         for (k, v) in json.loads(Path(generated_file).read_text()).items()
         if not re.search(r"^[dđ][^dđ]", k)
     }
-    Path("generated-rules-diff-this-telex-vs-florish-telex.json").write_text(
-        json.dumps(dict_diff(generated, floris), indent=2, ensure_ascii=False)
+    diff_lst = dict_diff(generated, floris)
+    Path("generated-rules-diff-this-telex-vs-floris-telex.json").write_text(
+        json.dumps(
+            {
+                "floris - this": diff_lst[1],
+                "this - floris": diff_lst[0],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
     )
 
 
@@ -77,6 +89,7 @@ def save_emacs_quail_rules():
  t)
 \n""")
         f.write("(quail-define-rules" + "\n")
+        # No upper case handling yet
         for k in keys:
             v = rules[k]
             f.write(f' ("{k}"  ["{v}"])\n')
@@ -85,37 +98,54 @@ def save_emacs_quail_rules():
 
 def write_floris_vni_extension():
     rules = main.make_im_vni()
+    groups = main.group_rules_for_write(rules.keys())
+    indent = " " * 8  # depend on inserting position below
+    rules_str = (
+        "\n".join(
+            map(
+                lambda g: indent + " ".join(map(lambda k: f'"{k}": "{rules[k]}",', g)),
+                groups,
+            )
+        )
+    ).removesuffix(",")
     # https://github.com/florisboard/florisboard/wiki/Creating-and-Packaging-Extensions
-    extension = {
-        "$": "ime.extension.keyboard",
-        "meta": {
-            # Can't https://github.com/florisboard/florisboard/wiki/How-to-publish-on-FlorisBoard-Addons#register-account for now
-            "id": "io.github.daanturo.im-viet-rules.vni",
-            "version": "0.1.0",
-            "title": "Vietnamese VNI input method",
-            "description": """Provide the Vietnamese (Tan Ky mode) VNI input method for Florishboard, in addition to the built-in Telex.
-See: https://en.wikipedia.org/wiki/VNI#Input_methods.""",
-            "keywords": ["composer", "input-method"],
-            "maintainers": ["@daanturo"],
-            "license": "mpl-2.0",
-        },
-        "composers": [
-            {
-                "$": "with-rules",
-                # Happy to change the id to just "vni" if accepted upstream.
-                "id": "vni-addon",
-                "label": "VNI",
-                "rules": rules,
-            }
-        ],
+    # Can't https://github.com/florisboard/florisboard/wiki/How-to-publish-on-FlorisBoard-Addons#register-account for now
+    # Happy to change the id to just "vni" if accepted upstream.
+    extension = (
+        """{
+  "$": "ime.extension.keyboard",
+  "meta": {
+    "id": "io.github.daanturo.im-viet-rules.vni",
+    "version": "0.1.0",
+    "title": "Vietnamese VNI input method",
+    "description": "Provide the Vietnamese (Tan Ky mode) VNI input method for Florisboard, in addition to the built-in Telex.\\n  See: https://en.wikipedia.org/wiki/VNI#Input_methods.",
+    "keywords": ["composer", "input-method"],
+    "maintainers": ["@daanturo"],
+    "license": "mpl-2.0"
+  },
+  "composers": [
+    {
+      "$": "with-rules",
+      "id": "vni-addon",
+      "label": "VNI",
+      "rules": {"""
+        + "\n"
+        + rules_str
+        + """
+      }
     }
-    with open("florish-im-vni-extension.json", "w") as f:
-        json.dump(extension, f, indent=2, ensure_ascii=False)
-    with open("extension.json", "w") as f:
-        json.dump(extension, f, indent=2, ensure_ascii=False)
+  ]
+}\n"""
+    )
+    path = "floris-im-vni-extension.json"
+    Path(path).write_text(extension, encoding="utf8")
+    shutil.copy(path, "extension.json")
+    with zipfile.ZipFile("floris-im-vni-extension.flex", "w") as f:
+        f.write("extension.json")
+    os.remove("extension.json")
 
 
 if __name__ == "__main__":
-    compare_with_florish_telex()
-    save_emacs_quail_rules()
+    compare_with_floris_telex()
+    # save_emacs_quail_rules()
     write_floris_vni_extension()

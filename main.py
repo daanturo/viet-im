@@ -1,11 +1,12 @@
 import argparse
+import itertools
 import json
 import os
 import re
 import sys
 import unicodedata
 import urllib.request
-from copy import deepcopy
+from copy import copy, deepcopy
 from functools import reduce
 from operator import itemgetter
 from pathlib import Path
@@ -16,7 +17,7 @@ from unidecode import unidecode
 
 ## * Configs
 
-# ALLOW_FREE_TONE = False
+ALLOW_FREE_TONE = True
 
 ## * Constants
 
@@ -37,7 +38,7 @@ TONAL_VOWEL_LETTERS = (
     + TONE_ACUTE_LETTERS
     + TONE_DOT_BELOW_LETTERS
 )
-# (1+2)*6 + 5*(2+3)*6 = 168 after NFD decompose
+# (1+2)*6 + 5*(2+3)*6 = 168 code points after NFD decompose/normalize
 VOWEL_LETTERS = NO_TONE_VOWEL_LETTERS + TONAL_VOWEL_LETTERS
 CONSONANT_LETTERS = "bcdfgjklmnpqstvxzhrw" + "đ"
 COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS = ("gi", "qu")
@@ -111,7 +112,7 @@ def truthy(arg) -> False:
     return (not ((False == arg) and isinstance(arg, bool))) and (not (arg is None))
 
 
-def some_of(*seq) -> bool:
+def or_truthy(*seq) -> bool:
     """Return the first "truthy" value in ARGS, if none of them return the last
     one.  Consider values other than False and None truthy, such as 0, [], empty
     string (\"\"), etc."""
@@ -204,22 +205,68 @@ VIETNAMESE_WORD_REGEX = (
 
 
 def parse_word_components(word):
+    """Return matching groups, excluding whole match by VIETNAMESE_WORD_REGEX:
+    -[0]: Prefixing consonants
+    -[1]: The rhyme, includes [2] & [3]
+    -[2]: Vowels part
+    -[3]: Suffixing consonants
+    """
     match = re.match(VIETNAMESE_WORD_REGEX, word)
     if match:
         return match.groups()
+
+
+def group_rules_for_write(rule_keys, max_per=10):
+    """Group related rules together, to reduce number of lines in the written
+    rules file."""
+    length = 1  # Length of shared prefix to group, gradually increase increase until the rules are different enough to break sensibly
+    groups = [rule_keys]
+    while any(map(lambda g: len(g) > max_per, groups)):
+        new_group_list = []
+        regrouped = []
+        for i, sub_group in enumerate(groups):
+            match None:
+                # Join together consecutive groups whose lengths = 1
+                case _ if len(sub_group) == 1 and len(sub_group[-1]) >= length:
+                    regrouped += sub_group
+                    if len(groups) == i + 1 or len(groups[i + 1]) > 1:
+                        new_group_list += [regrouped]
+                        regrouped = []
+                case _ if len(sub_group) <= max_per:
+                    new_group_list += [sub_group]
+                # Group too long: break up
+                case _:
+                    broken_groups = [
+                        list(g)
+                        for (_, g) in itertools.groupby(
+                            sub_group,
+                            key=lambda s: (s[:length], len(s)),
+                        )
+                    ]
+                    new_group_list += broken_groups
+        groups = new_group_list
+        length += 1
+    return groups
 
 
 ## * Combinative vowels
 
 
 # EXCEPTION: ?
-def is_invalid_tone(tone_name, suffix_consonant_part):
-    return tone_name in ["grave", "perispomeni", "hook"] and suffix_consonant_part in [
-        "c",
-        "ch",
-        "p",
-        "t",
-    ]
+def is_valid_tone(tone_name, suffix_consonant_part):
+    return ALLOW_FREE_TONE or (
+        # huyền, hỏi, ngã can't go together with certain suffixing consonants
+        not (
+            tone_name in ["grave", "perispomeni", "hook"]
+            and suffix_consonant_part
+            in [
+                "c",
+                "ch",
+                "p",
+                "t",
+            ]
+        )
+    )
 
 
 def _get_words_from_dictionary():
@@ -318,7 +365,7 @@ def make_preliminary_rhyme_table(rhymes, combin_vowels):
             rhyme_table[rhyme_no_tone] = dict()
         if rhyme_table.get(rhyme_ascii) is None:
             rhyme_table[rhyme_ascii] = dict()
-        tone_pos = some_of(
+        tone_pos = or_truthy(
             (tone_info and tone_info.get("position")),
             rhyme_table[rhyme_no_tone].get("tone_position"),
         )
@@ -373,8 +420,8 @@ def get_preliminary_table():
 
 
 class Rhyme:
-    """The vowel part is either elemental or combinative.  In a vowel, for each
-    of alphabet diacritic and tone, there is only at most one class."""
+    """Properties of a "vần".  In a combinative vowel, for each of alphabet
+    diacritic and tone, there is only at most one type."""
 
     _text: str
     _alphabet_diacritic_name = None
@@ -454,6 +501,8 @@ class Rhyme:
         return txt
 
     def with_alphabet_diacritic(self, apb_diacriatic: str) -> str:
+        if apb_diacriatic in ALPHABET_DIACRITIC_TABLE and getattr(self, apb_diacriatic):
+            return getattr(self, apb_diacriatic)
         ascii_vowels = remove_string_all_diacritics(self._vowel_part)
         new_vowel_part_char_list = []
         for i in range(len(ascii_vowels)):
@@ -494,10 +543,12 @@ class Rhyme:
         return retval
 
     def with_tone(self, tone: str) -> str:
-        if self.tone_position is None or is_invalid_tone(
+        if self.tone_position is None or not is_valid_tone(
             tone, self._suffix_consonant_part
         ):
             return self._text
+        if tone in TONE_TABLE and getattr(self, tone):
+            return getattr(self, tone)
         tone_pos = self.tone_position
         old_char_with_tone = self._text[self.tone_position]
         new_char_with_tone = remove_string_tone_diacritics(old_char_with_tone) + chr(
