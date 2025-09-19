@@ -140,6 +140,10 @@ def write_floris_vni_extension():
     path = "floris-im-vni-extension.json"
     Path(path).write_text(extension, encoding="utf8")
     shutil.copy(path, "extension.json")
+    # No idea how to generate a .flex archive file, none of the web searching,
+    # Mistral, chatGPT, Gemini knew, until I did a org-wide search and stumbled
+    # at
+    # https://github.com/florisboard/nlp/blob/9e8d49649d6a3d32af85873043ba2c3c0a43d151/utils/convert_dictionaries_to_extensions.py#L56
     with zipfile.ZipFile("floris-im-vni-extension.flex", "w") as f:
         f.write("extension.json")
     os.remove("extension.json")
