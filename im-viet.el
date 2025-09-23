@@ -1,110 +1,149 @@
-;;; im-viet.el --- Type Vietnamese on Emacs with more freedom -*- lexical-binding: t; -*-
+;;; im-viet.el --- Type Vietnamese on Emacs with more flexibility -*- lexical-binding: t; -*-
 
-;; Package-Version: 0.1.0-git
+;; Author: Dan <@>
+;; Version: 0.1.0-git
 ;; Package-Requires: ((emacs "30"))
+;; Keywords: i18n
+;; URL: https://gitlab.com/daanturo/im-viet/
 
 ;;; Commentary:
-;; Provide a way to type Vietnamese on Emacs, with more extensive rules than the
-;; built-in Quail packages (as of 2025-09-23).
+
+;; Provide a way to type Vietnamese on Emacs, with more extensive rules and
+;; typing freedom (1) than the built-in Quail package (as of 2025-09).
+
+;; See: https://en.wikipedia.org/wiki/VNI#VNI_Tan_Ky
+
 
 ;;; Code:
 
-(require 'dash)
+(require 'cl-macs)
+(require 'map)
+
+(require 'im-viet-rules)
+
+;;;; Customization
 
 (defgroup im-viet nil
-  "Type Vietnamese.")
+  "Type Vietnamese."
+  :group 'i18n)
 
-(defvar im-viet--rules--file-format
-  (file-name-concat (file-name-parent-directory
-                     (or load-file-name buffer-file-name))
-                    "generated-im-%s.json"))
-(defvar im-viet--rules--val '())
-(defun im-viet--rules (im)
-  "Get rules of input method IM."
-  (with-memoization (map-elt im-viet--rules--val im)
-    (let* ((filename (format im-viet--rules--file-format im)))
-      (with-temp-buffer
-        (insert-file-contents filename)
-        (goto-char (point-min))
-        (json-parse-buffer :object-type 'hash-table)))))
+(defcustom im-viet-allow-escape-composition t
+  "Handle backslash-trigger cases: just insert trigger.
+For example: \\0 -> 0, \\z -> z."
+  :type 'boolean)
 
-(defcustom im-viet-input-method 'vni
+;;;; Process
+
+(defvar-local im-viet--current-input-method 'vni
   "Choice of input method.
-- VNI:  https://en.wikipedia.org/wiki/VNI#Input_methods
-- Telex: https://en.wikipedia.org/wiki/Telex_(input_method)"
-  :type '(choice (const :tag "VNI" vni) (const :tag "Telex" telex)))
+- \\='vni -  VNI:  https://en.wikipedia.org/wiki/VNI#Input_methods
+- \\='telex - Telex: https://en.wikipedia.org/wiki/Telex_(input_method)")
 
 (defconst im-viet--triggers '((vni . "0123456789") (telex . "adefjorswxz")))
 
 (defconst im-viet--vowels
-  (concat
-   "aăâeêioôơuưy"
-   "àằầèềìòồờùừỳ"
-   "áắấéếíóốớúứý"
-   "ãẵẫẽễĩõỗỡũữỹ"
-   "ạặậẹệịọộợụựỵ"
-   "ảẳẩẻểỉỏổởủửỷ"))
+  (string-to-list
+   (concat
+    "aăâeêioôơuưy"
+    "àằầèềìòồờùừỳ"
+    "áắấéếíóốớúứý"
+    "ãẵẫẽễĩõỗỡũữỹ"
+    "ạặậẹệịọộợụựỵ"
+    "ảẳẩẻểỉỏổởủửỷ")))
 
-(defconst im-viet--consonants
-  (concat
-   ;; "đ"
-   "bcdfgjklmnpqstvxzhrw"))
+(defconst im-viet--suffix-consonants (string-to-list (concat "bcdfgjklmnpqstvxzhrw")))
+
+;; Insert escape composition cases
+(dolist (pair im-viet--triggers)
+  (let* ((im (car pair)))
+    (puthash "\\\\" "\\" (map-elt im-viet--rules-table im))
+    (seq-do
+     (lambda (char)
+       (puthash
+        (format "\\%c" char)
+        (format "%c" char)
+        (map-elt im-viet--rules-table im)))
+     (cdr pair))))
+
+(defconst im-viet--escape-composition-regexp
+  (let* ((trigger-list
+          (seq-mapcat #'string-to-list (map-values im-viet--triggers))))
+    (rx-to-string `(seq "\\" (or ,@trigger-list "\\")) 'no-group)))
 
 (defconst im-viet--candidate-regexp
-  (rx-to-string
-   `(seq
-     ;; word-start
-     (?  (or "d" "đ")) ; only "d" and "đ" in prefixing consonants can change
-     ;; grouping: check if replacing "d" works first, then rhyme only
-     (group
-      (* (or ,@(string-to-list im-viet--vowels))) ; vowels
-      (* (or ,@(string-to-list im-viet--consonants))) ; suffixing consonants
-      (or ,@(--> (map-values im-viet--triggers) (-mapcat #'string-to-list it))) ; include a trigger char
-      )
-     ;; point
-     )
-   'no-group))
+  (let* ((trigger-list
+          (seq-mapcat #'string-to-list (map-values im-viet--triggers))))
+    (rx-to-string
+     `(or
+       (seq
+        (?  (or "d" "đ")) ; only "d" and "đ" in prefixing consonants can change
+        ;; grouping: check if replacing "d" works first, then rhyme only
+        (group
+         (* (or ,@im-viet--vowels))
+         (* (or ,@im-viet--suffix-consonants))
+         (or ,@trigger-list) ; include a trigger char
+         )))
+     'no-group))
+  "Regular expression for the rule key before point.")
 
 (defun im-viet--replace-maybe ()
-  "Replace some chars before point with apropriate intended diacritics."
-  (when (save-excursion
-          ;; (re-search-backward im-viet--candidate-regexp (pos-bol) t)
-          (looking-back im-viet--candidate-regexp (pos-bol) 'greedy))
-    (-some
-     (lambda (subexp)
-       (when-let* ((cand (downcase (match-string subexp)))
-                   (result
-                    (map-elt (im-viet--rules im-viet-input-method) cand)))
-         (replace-match result nil nil nil subexp)
-         t))
-     '(0 1))))
+  "Replace some chars before point with appropriate intended diacritics."
+  (cl-labels ((match-fn (regexp)
+                (and (save-excursion (looking-back regexp (pos-bol) 'greedy))
+                     (< 1 (- (match-end 0) (match-beginning 0))))))
+    (when (or (match-fn im-viet--candidate-regexp)
+              (and im-viet-allow-escape-composition
+                   (match-fn im-viet--escape-composition-regexp)))
+      ;; Try group 0 (includes "d") first, then if no rule then group 1 (only rhyme)
+      (seq-some
+       (lambda (subexp)
+         (when-let* ((cand (downcase (match-string subexp)))
+                     (result
+                      (map-nested-elt
+                       im-viet--rules-table
+                       (list im-viet--current-input-method cand))))
+           (replace-match result nil nil nil subexp)
+           t))
+       [0 1]))))
 
 (defun im-viet-mode--post-self-insert-h ()
   "Run `im-viet--replace-maybe' after trigger char."
+  ;; Only proceed if a triggering char has been insert
   (when (seq-position
-         (map-elt im-viet--triggers im-viet-input-method) last-command-event)
+         (map-elt im-viet--triggers im-viet--current-input-method) last-command-event)
     (im-viet--replace-maybe)))
 
-(defvar-local im-viet-mode--lighter nil)
+(defun im-viet--deactivate ()
+  "For `deactivate-current-input-method-function'."
+  (remove-hook 'post-self-insert-hook #'im-viet-mode--post-self-insert-h
+               'local))
 
 ;;;###autoload
-(define-minor-mode im-viet-mode
-  "Type Vietnamese."
-  :lighter
-  (:eval im-viet-mode--lighter)
-  (cond
-   (im-viet-mode
-    (setq-local im-viet-mode--lighter
-                (pcase im-viet-input-method
-                  (`vni "VNI")
-                  (`telex "Telex")))
-    (add-hook 'post-self-insert-hook #'im-viet-mode--post-self-insert-h
-              nil
-              'local))
-   (:else
-    (remove-hook 'post-self-insert-hook #'im-viet-mode--post-self-insert-h
-                 'local))))
+(defun im-viet--activate (_im-id-str im-symbol)
+  "Activate IM-SYMBOL, either \\='vni or \\='telex."
+  (setq-local im-viet--current-input-method im-symbol)
+  (setq-local deactivate-current-input-method-function #'im-viet--deactivate)
+  (add-hook 'post-self-insert-hook #'im-viet-mode--post-self-insert-h
+            nil
+            'local))
+
+;;;###autoload
+(register-input-method "vietnamese-vni-x" "Vietnamese"
+                       #'im-viet--activate
+                       "VV-X"
+                       "Vietnamese VNI input method - extended"
+                       'vni)
+;;;###autoload
+(register-input-method "vietnamese-telex-x" "Vietnamese"
+                       #'im-viet--activate
+                       "VT-X"
+                       "Vietnamese Telex input method - extended"
+                       'telex)
 
 ;;; im-viet.el ends here
 
 (provide 'im-viet)
+
+;; Local Variables:
+;; coding: utf-8
+;; End:
