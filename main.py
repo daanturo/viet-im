@@ -682,9 +682,10 @@ def _make_im(
             res = _make_im_case(im_name, rhyme_table, pre, rhyme, rules)
             if isinstance(res, dict):
                 rules |= res
-        # Allow changing ['uơi', 'uơm', 'uơn', 'uơng', 'uơu'] to ['ươi', 'ươm', 'ươn', 'ương', 'ươu']
+        # Allow changing ['uơi', 'uơm', 'uơn', 'uơng', 'uơu'] to ['ươi', 'ươm',
+        # 'ươn', 'ương', 'ươu'] after typing a letter after "ơ"
         if re.search(r"^ư[ơớờởỡợ].", rhyme):
-            rules["u" + rhyme[1:]] = rhyme
+            rules["u" + rhyme[1:3]] = rhyme[:3]
     # rules |= _im_special_rules_for_gi_qu(im_name)
     rules = dict(sorted(rules.items()))
     return rules
