@@ -10,14 +10,14 @@ For Android [Florisboard](https://github.com/florisboard/florisboard) users, imp
 
 Install:
 ```elisp
-(package-vc-install '(im-viet :url "https://gitlab.com/daanturo/im-viet"))
+(package-vc-install '(viet-im :url "https://gitlab.com/daanturo/viet-im"))
 ```
 
 Then call `set-input-method`/`toggle-input-method` (`toggle-input-method` need prefix argument if it was already called in this Emacs session) and select `vietnamese-vni-x` or `vietnamese-telex-x`.
 
 Hopefully this will be incorporated to improve Emacs's input methods system for Vietnamese.
 
-The package current supports VNI, Telex is secondary, VIQR and other input methods aren't planned at the moment.
+The package currently supports VNI, Telex (secondary), VIQR and other input methods aren't planned at the moment.  VIQR is conceptually similar to VNI and Telex, the only (IIRC) difference among the 3 IMs is at triggering characters so adding support for it shouldn't be hard if needed.
 
 Related issue: [https://lists.gnu.org/archive/html/help-gnu-emacs/2025-09/msg00205.html](https://yhetil.org/emacs/86a52lej8i.fsf@gnu.org/)
 

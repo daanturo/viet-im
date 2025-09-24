@@ -1,7 +1,7 @@
 {
   "$": "ime.extension.keyboard",
   "meta": {
-    "id": "io.github.daanturo.im-viet-rules.vni",
+    "id": "io.github.daanturo.viet-im-rules.vni",
     "version": "0.1.0",
     "title": "Vietnamese VNI input method",
     "description": "Provide the Vietnamese (Tan Ky mode) VNI input method for Florisboard, in addition to the built-in Telex.\n  See: https://en.wikipedia.org/wiki/VNI#Input_methods.",
