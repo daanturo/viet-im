@@ -61,7 +61,7 @@ def write_emacs_quail_rules():
     """Problem with quail: after finishing a diacritic, typing more won't
     modify the word, unless exhaustively listing all variants.
     """
-    rules = main.make_im_vni(main.make_full_rhyme_table())
+    rules = main.make_im_vni(main.get_full_rhyme_table())
     # Prioritize longer?
     keys = sorted(rules.keys(), key=lambda s: (-len(s), s))
     with open("temp-vn-vni-x.el", "w") as f:
@@ -114,7 +114,7 @@ def dict_to_emacs_hash_table(hmap: dict, indent=2) -> str:
 
 
 def write_emacs_package_rules_file():
-    rhyme_table = main.make_full_rhyme_table()
+    rhyme_table = main.get_full_rhyme_table()
     rules_vni = main.make_im_vni(rhyme_table)
     rules_telex = main.make_im_telex(rhyme_table)
     rules_file = "viet-im-rules.el"
