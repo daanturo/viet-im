@@ -11,6 +11,7 @@ from functools import reduce
 from operator import itemgetter
 from pathlib import Path
 from typing import Self
+from unicodedata import normalize as unicode_norm
 
 import json5
 from unidecode import unidecode
@@ -116,6 +117,10 @@ TONE_TABLE = {
     },
 }
 
+_TONE_AS_CHAR_STRINGS = [
+    chr(v["code_point"]) for v in TONE_TABLE.values() if v["code_point"]
+]
+
 ## * Helpers
 
 
@@ -143,33 +148,30 @@ def some(fn, seq):
 
 
 def remove_string_all_diacritics(string: str) -> str:
-    # Need external solution anyway, unicodedata.normalize("NFD", string) doesn't convert "đ"
+    # Need external solution anyway, unicode_norm("NFD", string) doesn't convert "đ"
     return unidecode(string)
 
 
 def remove_string_alphabet_diacritics(string: str):
     "Keep tone."
     removing = [chr(v["code_point"]) for v in ALPHABET_DIACRITIC_TABLE.values()]
-    keeping = [
-        char for char in unicodedata.normalize("NFD", string) if not (char in removing)
-    ]
-    return unicodedata.normalize("NFC", ("".join(keeping).replace("đ", "d")))
+    keeping = [char for char in unicode_norm("NFD", string) if not (char in removing)]
+    return unicode_norm("NFC", ("".join(keeping).replace("đ", "d")))
 
 
 def remove_string_tone_diacritics(string: str):
     "Keep alphabet diacritic."
-    removing = [chr(v["code_point"]) for v in TONE_TABLE.values() if v["code_point"]]
     keeping = [
-        char for char in unicodedata.normalize("NFD", string) if not (char in removing)
+        char for char in unicode_norm("NFD", string) if char not in _TONE_AS_CHAR_STRINGS
     ]
-    return unicodedata.normalize("NFC", ("".join(keeping)))
+    return unicode_norm("NFC", ("".join(keeping)))
 
 
 def get_string_tone(string: str):
     "Expect an NFC normalized string."
     table = {chr(v["code_point"]): k for k, v in TONE_TABLE.items() if v["code_point"]}
     for i in range(len(string)):
-        chars = unicodedata.normalize("NFD", string[i])
+        chars = unicode_norm("NFD", string[i])
         for char in chars:
             tone_name = table.get(char)
             if tone_name:
@@ -201,7 +203,7 @@ def get_string_alphabet_diacritic(string: str):
     "Expect an NFC normalized string."
     table = {chr(v["code_point"]): k for k, v in ALPHABET_DIACRITIC_TABLE.items()}
     for i in range(len(string)):
-        chars = unicodedata.normalize("NFD", string[i])
+        chars = unicode_norm("NFD", string[i])
         for char in chars:
             if table.get(char):
                 return {"alphabet_diacritic": table.get(char), "position": i}
@@ -472,7 +474,7 @@ class Rhyme:
     # is_complete_rhyme = False
 
     def __init__(self, text):
-        text = unicodedata.normalize("NFC", text)
+        text = unicode_norm("NFC", text)
         self._text = text
 
         match_groups = parse_word_components(text)
@@ -533,7 +535,7 @@ class Rhyme:
             and "uo" == ascii_vowels[:2]
             and len(self._vowel_part) + len(self._suffix_consonant_part) > 2
         ):
-            return unicodedata.normalize(
+            return unicode_norm(
                 "NFC",
                 self._prefix_consonant_part
                 + "ươ"
@@ -544,7 +546,7 @@ class Rhyme:
         # Else: 0~1 character with alphabetic diacritic in vowel part.  Note
         # that adding alphabetic diacritic may change tone position: "ứa"->"uấ"
         for diacritic_pos in range(len(ascii_vowels)):
-            new_rhyme = unicodedata.normalize(
+            new_rhyme = unicode_norm(
                 "NFC",
                 ascii_vowels[: diacritic_pos + 1]
                 + chr(ALPHABET_DIACRITIC_TABLE[apb_diacriatic]["code_point"])
@@ -571,7 +573,7 @@ class Rhyme:
         new_char_with_tone = remove_string_tone_diacritics(old_char_with_tone) + chr(
             TONE_TABLE[tone]["code_point"]
         )
-        new_char_with_tone = unicodedata.normalize("NFC", new_char_with_tone)
+        new_char_with_tone = unicode_norm("NFC", new_char_with_tone)
         unmarked_retval = (
             self._text[:tone_pos] + new_char_with_tone + self._text[tone_pos + 1 :]
         )
@@ -585,7 +587,7 @@ def _make_im_case(im_name: str, rhyme_table: dict, pre: str, rhyme: str, rules: 
     diacritic_table = ALPHABET_DIACRITIC_TABLE | TONE_TABLE
     rhyme_str_orig = deepcopy(rhyme)
     rhyme_str = deepcopy(rhyme)
-    orig_rhyme_ascii = remove_string_all_diacritics(rhyme_str_orig)
+    # orig_rhyme_ascii = remove_string_all_diacritics(rhyme_str_orig)
     tone_pos_orig = get_string_tone_potential_position(rhyme_str_orig)
     rhyme_str_no_overlap = re.sub(rf"^{rhyme_str_orig[0]}+", "", rhyme_str_orig)
     for diacritic_name in diacritic_table.keys():
@@ -629,6 +631,9 @@ def _make_im_case(im_name: str, rhyme_table: dict, pre: str, rhyme: str, rules: 
 
 
 def _diacritic_changes_when_insert():
+    """Define rules about diacritic changes when adding a character that's even
+    not a trigger.  Example: "úa"+b->"uấn".  Those rules must have lower
+    priority than IM-defined compositing trigger rules."""
     prelim_table = get_preliminary_table()
     rhymes = prelim_table.keys()
     pairs = [
@@ -639,28 +644,22 @@ def _diacritic_changes_when_insert():
         and long.startswith(short)
         and prelim_table[long]["tone_position"] != prelim_table[short]["tone_position"]
     ]
-    tone_code_points = [v["code_point"] for v in TONE_TABLE.values() if v["code_point"]]
 
-    def helper(short, long, tone_code_point):
+    def helper(short, long, tone_str):
         new_char = remove_string_all_diacritics(long.removeprefix(short)[0])
         long_tone_pos_1 = prelim_table[long]["tone_position"] + 1
         short_tone_pos_1 = prelim_table[short]["tone_position"] + 1
         new_no_tone = remove_string_tone_diacritics(short) + new_char
-        k = unicodedata.normalize(
+        k = unicode_norm(
             "NFC",
-            short[:short_tone_pos_1]
-            + chr(tone_code_point)
-            + short[short_tone_pos_1:]
-            + new_char,
+            short[:short_tone_pos_1] + tone_str + short[short_tone_pos_1:] + new_char,
         )
         # no "úa" -> "uá"
         if k in get_full_rhyme_table():
             return None
-        v = unicodedata.normalize(
+        v = unicode_norm(
             "NFC",
-            new_no_tone[:long_tone_pos_1]
-            + chr(tone_code_point)
-            + new_no_tone[long_tone_pos_1:],
+            new_no_tone[:long_tone_pos_1] + tone_str + new_no_tone[long_tone_pos_1:],
         )
         return (k, v)
 
@@ -670,7 +669,7 @@ def _diacritic_changes_when_insert():
             [
                 helper(short, long, tcp)
                 for (short, long) in pairs
-                for tcp in tone_code_points
+                for tcp in _TONE_AS_CHAR_STRINGS
             ],
         )
     )
@@ -693,14 +692,31 @@ def _make_im(
             res = _make_im_case(im_name, rhyme_table, pre, rhyme, rules)
             if isinstance(res, dict):
                 rules |= res
-        # Allow changing ['uơi', 'uơm', 'uơn', 'uơng', 'uơu'] to ['ươi', 'ươm',
-        # 'ươn', 'ương', 'ươu'] after typing a letter after "ơ"
         if re.search(r"^ư[ơớờởỡợ].", rhyme):
+            # Allow changing ['uơi', 'uơm', 'uơn', 'uơng', 'uơu'] to ['ươi',
+            # 'ươm', 'ươn', 'ương', 'ươu'] after typing a letter after "ơ"
             rules["u" + rhyme[1:3]] = rhyme[:3]
+            rhyme_from_o = rhyme[1:]
+            # But not "quơ"+any -> "qươ"+anh
+            rules["qu" + rhyme[1:3]] = "qu" + rhyme[1:3]
+            # Prevent "quo"+horn -> "qươ"
+            if rhyme_table.get(remove_string_tone_diacritics(rhyme_from_o)):
+                rhyme_from_o_no_horn = remove_string_alphabet_diacritics(rhyme_from_o)
+                for i in range(1, len(rhyme_from_o) + 1):
+                    sub_rhyme = rhyme_from_o_no_horn[:i]
+                    for horn_trigger in ALPHABET_DIACRITIC_TABLE["horn"][im_name]:
+                        rules[f"qu{sub_rhyme}{horn_trigger}"] = "qu" + rhyme_from_o[:i]
     # Adding "o" after "ư" makes them "ươ"
     for u_horn, o_horn in zip("ưứừửữự", "ơớờởỡợ"):
         rules[f"{u_horn}o"] = f"ư{o_horn}"
-    rules |= _diacritic_changes_when_insert()
+    if im_name == "im_telex":
+        for tone_str in _TONE_AS_CHAR_STRINGS + [""]:
+            # "quaw" -> "quă" instead of "qưa", practically only Telex
+            breve_info = ALPHABET_DIACRITIC_TABLE["breve"]
+            k = "qu" + unicode_norm("NFC", "a" + tone_str) + breve_info[im_name]
+            v = "qu" + unicode_norm("NFC", "a" + chr(breve_info["code_point"]) + tone_str)
+            rules[k] = v
+    rules = _diacritic_changes_when_insert() | rules
     # # Escape from composition
     # rules |= {f"\\{trigger}": trigger for v in (ALPHABET_DIACRITIC_TABLE | TONE_TABLE).values() for trigger in v[im_name]} | {"\\\\": "\\"}
     rules = dict(sorted(rules.items()))
@@ -743,7 +759,7 @@ _cached_rules = dict()
 
 def get_im_rules(im_name):
     im_name = im_name.removeprefix("im_")
-    global _cached_rules
+    # global _cached_rules
     if _cached_rules.get(im_name):
         return _cached_rules.get(im_name)
     rules = json.loads(Path(f"generated-im-{im_name}.json").read_text("utf8"))
@@ -786,50 +802,13 @@ def make_full_rhyme_table():
 
 def _compose_diacritic_at_end(candidate: str, im_name: str):
     im_name_1 = "im_" + im_name.removeprefix("im_")
-    rules = get_im_rules(im_name)
-    trigger_chars = ""
-    trigger_chars += "".join(v[im_name_1] for v in TONE_TABLE.values())
-    trigger_chars += "".join(v[im_name_1] for v in ALPHABET_DIACRITIC_TABLE.values())
-    trigger_chars += LEAD_DIACRITICS["d"][im_name_1]
-    triggers_re = rf"([{trigger_chars}]+)$"
-    s = candidate
-    # Extract triggers before leading consonants ("dd")
-    try:
-        triggers = re.search(triggers_re, s[-1:]).group(1) or ""
-    except Exception:
-        triggers = ""
-    s = s.removesuffix(triggers)
-    try:
-        # íìỉĩị
-        leading_consonants = (
-            re.search(
-                rf"^(d|đ|qu|g[i](?=[{VOWEL_LETTERS}])|[{CONSONANT_LETTERS}]+)", s
-            ).group(1)
-            or ""
-        )
-    except Exception:
-        leading_consonants = ""
-    s = s.removeprefix(leading_consonants)
-    rhyme = s
-    potential_non_trigger_rhyme_change = rules.get(rhyme)  # "uờn" -> "ườn"
-    if "" == triggers and potential_non_trigger_rhyme_change:
-        return leading_consonants + potential_non_trigger_rhyme_change
-    if "" == triggers:
-        return candidate
-    trigger_0 = triggers[0]
-    next_triggers = triggers[1:]
-    next_cand = rules.get(leading_consonants + rhyme + trigger_0)
-    next_rhyme = rules.get(rhyme + trigger_0)
-    if "" == next_triggers and (next_cand or next_rhyme):
-        return next_cand or leading_consonants + next_rhyme
-    if next_cand is not None:
-        return _compose_diacritic_at_end(next_cand + next_triggers, im_name)
-    if next_rhyme is not None:
-        return _compose_diacritic_at_end(
-            leading_consonants + next_rhyme + next_triggers, im_name
-        )
-    # Unsuccessful compositing
-    return leading_consonants + rhyme + triggers
+    rules = get_im_rules(im_name_1)
+    for i in range(len(candidate)):
+        pre = candidate[:i]
+        suf = candidate[i:]
+        if rules.get(suf):
+            return pre + rules[suf]
+    return candidate
 
 
 def compose_diacritics(candidate: str, im_name: str):
@@ -851,6 +830,7 @@ def _ascii_word_diacritic_ways(char_groups: list[str], diacritics: list[tuple[in
     # Process from right to left, so that the positions of insertion is preserved
     (char_pos, trigger) = diacritics[-1]
     rv = []
+    # Permutations-like
     for i in range(char_pos + 1, len(char_groups) + 1):
         new_groups = char_groups[:i] + [trigger] + char_groups[i:]
         rv += _ascii_word_diacritic_ways(new_groups, diacritics[:-1])
@@ -863,54 +843,48 @@ def _ascii_word_diacritic_ways(char_groups: list[str], diacritics: list[tuple[in
 
 def ways_to_type_word(word: str, im_name: str):
     im_name_1 = "im_" + im_name.removeprefix("im_")
+    word_parts = parse_word_components(word)
     # Rather than committing to Tan Ky mode and exploding the collection of
     # rules with partial rhymes whose suffix consonant parts are incomplete, be
     # a little more conservative and disallow modify vowel diacritics when the
     # said parts aren't complete
     try:
-        suffix_consonants = parse_word_components(word)[3] or ""
+        suffix_consonants = word_parts[3] or ""
     except Exception:
         suffix_consonants = ""
+    decomposed_suffix_consonants = []
+    if suffix_consonants not in ["", None]:
+        decomposed_suffix_consonants = [[suffix_consonants]]
     decomposed_list = [
-        ["d", "đ"] if c == "đ" else list(unicodedata.normalize("NFD", c))
-        for c in unicodedata.normalize("NFC", word.removesuffix(suffix_consonants))
-    ] + [[suffix_consonants]]
+        ["d", "đ"] if c == "đ" else list(unicode_norm("NFD", c))
+        for c in unicode_norm("NFC", word.removesuffix(suffix_consonants))
+    ] + decomposed_suffix_consonants
+    # Type "xoong" in Telex
+    for i in range(1, len(decomposed_list)):
+        char = decomposed_list[i][0]
+        if decomposed_list[i - 1][0] == char and char in "".join(
+            [v[im_name_1] for v in (ALPHABET_DIACRITIC_TABLE | TONE_TABLE).values()]
+        ):
+            decomposed_list[i][0] = char + char
     base_char_groups = [l[0] for l in decomposed_list]
     # Tuples of : (exlusive min positions that the diacritic mark can be put, diacritic mark)
-    diacritics = [
-        (
-            i,
-            LEAD_DIACRITICS["d"][im_name_1]
-            if "đ" == c
-            else some(
-                lambda v: ((ord(c) == v["code_point"]) and v[im_name_1]),
-                (ALPHABET_DIACRITIC_TABLE | TONE_TABLE).values(),
-            ),
-        )
-        for (i, l) in enumerate(decomposed_list)
-        if len(l) > 1
-        for c in l[1:]
-        # Don't need to put horn on "o" after "ư"
-        if c not in decomposed_list[i - 1][1:]
-    ]
     diacritics = []
     for i, decomposed_char_as_list in enumerate(decomposed_list):
-        if len(decomposed_char_as_list) > 1:
-            for c in decomposed_char_as_list[1:]:
-                # Don't need to put horn on "o" after "ư"
-                if c not in decomposed_list[i - 1][1:]:
-                    if "đ" == c:
-                        trigger = LEAD_DIACRITICS["d"][im_name_1]
-                    else:
-                        trigger = some(
-                            lambda v: ((ord(c) == v["code_point"]) and v[im_name_1]),
-                            (ALPHABET_DIACRITIC_TABLE | TONE_TABLE).values(),
-                        )
-                        # Telex "âêô"
-                        if len(trigger) > 1:
-                            trigger = decomposed_char_as_list[0]
-                    diacritics += [(i, trigger)]
-
+        # if len(decomposed_char_as_list) > 1:
+        for c in decomposed_char_as_list[1:]:
+            # Don't need to put horn on "o" after "ư"
+            if 0 == i or (i > 0 and (c not in decomposed_list[i - 1][1:])):
+                if "đ" == c:
+                    trigger = LEAD_DIACRITICS["d"][im_name_1]
+                else:
+                    trigger = some(
+                        lambda v: ((ord(c) == v["code_point"]) and v[im_name_1]),
+                        (ALPHABET_DIACRITIC_TABLE | TONE_TABLE).values(),
+                    )
+                    # Telex "âêô"
+                    if len(trigger) > 1:
+                        trigger = decomposed_char_as_list[0]
+                diacritics += [(i, trigger)]
     return sorted(set(_ascii_word_diacritic_ways(base_char_groups, diacritics)))
 
 
@@ -922,7 +896,8 @@ def test_on_dictionary():
             passed = set([word]) == set(compose_diacritics(s, im) for s in ways)
             if not passed:
                 failed_ways = [way for way in ways if compose_diacritics(way, im) != word]
-                print(f'Testing fails on {im} "{word}" \t\t failed ways: {failed_ways}')
+                print(f'Test fails: {im} "{word}" \t\t failed ways: {failed_ways}')
+    print("Tests done.")
 
 
 def main():
