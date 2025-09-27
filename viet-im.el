@@ -1,6 +1,6 @@
-;;; viet-im.el --- Type Vietnamese on Emacs with more flexibility -*- lexical-binding: t; -*-
+;;; viet-im.el --- Vietnamese input methods, type diacritics anywhere after base characters     -*- lexical-binding: t; -*-
 
-;; Author: Dan <@>
+;; Author: Dan <https://gitlab.com/daanturo/>
 ;; Version: 0.1.0-git
 ;; URL: https://gitlab.com/daanturo/viet-im/
 ;; Package-Requires: ((emacs "29.1"))
@@ -8,10 +8,11 @@
 
 ;;; Commentary:
 
-;; Provide a way to type Vietnamese on Emacs, with more extensive rules
-;; and typing freedom (1) than the built-in Quail packages.  Unlike
-;; Quail-based IMs, this also allows modifying diacritics after the word
-;; is completed.
+;; Provide a way to type Vietnamese on Emacs, with more extensive rules and
+;; typing freedom (1) than the built-in Quail packages.  Unlike Quail-based IMs,
+;; this package works by taking existing characters around point, so it also
+;; allows modifying diacritics after the word is completed, as a result no
+;; pre-edit underlines are shown as well.
 
 ;; (1) See: https://en.wikipedia.org/wiki/VNI#VNI_Tan_Ky, in this
 ;; package that flexibility of order is applicable to Telex as well.
@@ -47,27 +48,6 @@
      "ạặậẹệịọộợụựỵ"
      "ảẳẩẻểỉỏổởủửỷ")))
 
-(defconst viet-im--implicit-triggers
-  (mapcar
-   (lambda (im)
-     (let* ((explicit-triggers
-             (split-string (map-elt viet-im--explicit-triggers im) "" t))
-            (rule-keys (hash-table-keys (map-elt viet-im--rules-table im)))
-            (implicit-chars
-             (string-join (sort
-                           (seq-uniq
-                            (seq-keep
-                             (lambda (s)
-                               (let* ((char (substring s -1)))
-                                 (and (not
-                                       (seq-contains-p explicit-triggers char))
-                                      char)))
-                             rule-keys)))
-                          "")))
-       (cons im implicit-chars)))
-   '(vni telex))
-  "Characters that may trigger diacritic changes that aren't IM-defined explicit triggers.")
-
 (defconst viet-im--uncomposed-syllable-regexp
   (mapcar
    (lambda (im)
@@ -93,40 +73,41 @@
 (defun viet-im--replace-maybe ()
   "Replace some chars before point with appropriate intended diacritics."
   (when-let* ((im viet-im--current-input-method)
-              ;; Must be a monosyllabic word, as polysyllabic words aren't
-              ;; Vietnamese
+              ;; Vietnamese words are monosyllabic word
+              (syllable-re (map-elt viet-im--uncomposed-syllable-regexp im))
               (_
-               (looking-back (map-elt viet-im--uncomposed-syllable-regexp im)
-                             (pos-bol)
-                             t))
+               (dlet ((case-fold-search t))
+                 (looking-back syllable-re (pos-bol) 'greedy)))
               (word-beg (match-beginning 0))
-              (whole-candidate (buffer-substring word-beg (point))))
+              (orig-len (- (point) word-beg))
+              (orig-candidate (buffer-substring word-beg (point)))
+              (locase-candidate (downcase (buffer-substring word-beg (point)))))
     ;; Try from longest to shortest potential strings before point until one
     ;; matches a rule, e.g.  "abc"|, "bc"|, "c"|.
     (named-let recur ((try-from 0))
-      (when (< try-from (length whole-candidate))
-        (let* ((cand (substring whole-candidate try-from))
+      (when (< try-from orig-len)
+        (let* ((cand (substring locase-candidate try-from))
                (result (map-nested-elt viet-im--rules-table (list im cand))))
           (cond
            (result
-            (delete-char (- try-from (length whole-candidate)))
-            (insert result)
-            result)
+            ;; Opt to not handle letter cases manually, note that match data
+            ;; must be unchanged between `looking-back' above and this
+            (replace-match
+             (concat (substring orig-candidate 0 try-from) result)))
            (:else
             (recur (+ 1 try-from)))))))))
 
 (defun viet-im-mode--post-self-insert-h ()
   "Run `viet-im--replace-maybe' after trigger char."
-  ;; Only proceed if a triggering char has been insert
+  ;; Proceed if a triggering, or alphabetic character (for diacritics changing
+  ;; outside of IM-defined rules) has been inserted.  Ideally the condition
+  ;; should be more selective but there hasn't been a performance downgrade
+  ;; detected yet.
   (when (or (seq-position
              (map-elt
               viet-im--explicit-triggers viet-im--current-input-method)
              last-command-event)
-            ;; TODO: should we just consider explicit triggers + all alphabetic?
-            (seq-position
-             (map-elt
-              viet-im--implicit-triggers viet-im--current-input-method)
-             last-command-event))
+            (string-match "[[:alpha:]]" (char-to-string last-command-event)))
     (viet-im--replace-maybe)))
 
 (defun viet-im--deactivate ()
@@ -136,7 +117,7 @@
 
 ;;;###autoload
 (defun viet-im--activate (_im-id-str im-symbol)
-  "Activate IM-SYMBOL, either \\='vni or \\='telex."
+  "Activate input method IM-SYMBOL, either \\='vni or \\='telex."
   (setq-local viet-im--current-input-method im-symbol)
   (setq-local deactivate-current-input-method-function #'viet-im--deactivate)
   (add-hook 'post-self-insert-hook #'viet-im-mode--post-self-insert-h
