@@ -15,8 +15,6 @@ Install:
 
 Then call `set-input-method`/`toggle-input-method` (`toggle-input-method` need prefix argument if it was already called in this Emacs session) and select `vietnamese-vni-x` or `vietnamese-telex-x`.
 
-Hopefully this will be incorporated to improve Emacs's input methods system for Vietnamese.
-
 The package currently supports VNI, Telex (secondary), VIQR and other input methods aren't planned at the moment.  VIQR is conceptually similar to VNI and Telex, the only (IIRC) difference among the 3 IMs is at triggering characters so adding support for it shouldn't be hard if needed.
 
 Related issue: [https://lists.gnu.org/archive/html/help-gnu-emacs/2025-09/msg00205.html](https://yhetil.org/emacs/86a52lej8i.fsf@gnu.org/)
@@ -28,8 +26,7 @@ With [uv](https://github.com/astral-sh/uv/) installed:
 ```bash
 uv venv
 source .venv/bin/activate
-python3 main.py # generated-im-{vni,telex}.json
-python3 misc.py # floris-im-vni-extension.flex
+python3 main.py
 ```
 
 Processing steps on a high-level:

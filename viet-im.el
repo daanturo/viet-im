@@ -34,66 +34,99 @@
 - \\='vni -  VNI:  https://en.wikipedia.org/wiki/VNI#Input_methods
 - \\='telex - Telex: https://en.wikipedia.org/wiki/Telex_(input_method)")
 
-(defconst viet-im--triggers '((vni . "0123456789") (telex . "adefjorswxz")
-                              (viqr . "(^+`'?~.0")))
+(defconst viet-im--explicit-triggers
+  '((vni . "0123456789") (telex . "adefjorswxz") (viqr . "(^+`'?~.0")))
 
 (defconst viet-im--vowels
-  (string-to-list
-   (concat
-    "aăâeêioôơuưy"
-    "àằầèềìòồờùừỳ"
-    "áắấéếíóốớúứý"
-    "ãẵẫẽễĩõỗỡũữỹ"
-    "ạặậẹệịọộợụựỵ"
-    "ảẳẩẻểỉỏổởủửỷ")))
+  (progn
+    (concat
+     "aăâeêioôơuưy"
+     "àằầèềìòồờùừỳ"
+     "áắấéếíóốớúứý"
+     "ãẵẫẽễĩõỗỡũữỹ"
+     "ạặậẹệịọộợụựỵ"
+     "ảẳẩẻểỉỏổởủửỷ")))
 
-(defconst viet-im--suffix-consonants (string-to-list (concat "bcdfgjklmnpqstvxzhrw")))
+(defconst viet-im--implicit-triggers
+  (mapcar
+   (lambda (im)
+     (let* ((explicit-triggers
+             (split-string (map-elt viet-im--explicit-triggers im) "" t))
+            (rule-keys (hash-table-keys (map-elt viet-im--rules-table im)))
+            (implicit-chars
+             (string-join (sort
+                           (seq-uniq
+                            (seq-keep
+                             (lambda (s)
+                               (let* ((char (substring s -1)))
+                                 (and (not
+                                       (seq-contains-p explicit-triggers char))
+                                      char)))
+                             rule-keys)))
+                          "")))
+       (cons im implicit-chars)))
+   '(vni telex))
+  "Characters that may trigger diacritic changes that aren't IM-defined explicit triggers.")
 
-;; (defvar viet-im-allow-escape-composition t
-;;   "If non-nil, handle backslash + trigger char cases: just insert trigger.
-;; For example: \\0 -> 0, \\z -> z.")
-;; (dolist (pair viet-im--triggers)
-;;   (let* ((im (car pair)))
-;;     (puthash "\\\\" "\\" (map-elt viet-im--rules-table im))
-;;     (seq-do
-;;      (lambda (char)
-;;        (puthash
-;;         (format "\\%c" char)
-;;         (format "%c" char)
-;;         (map-elt viet-im--rules-table im)))
-;;      (cdr pair))))
+(defconst viet-im--uncomposed-syllable-regexp
+  (mapcar
+   (lambda (im)
+     (let* ((d-trigger (map-elt '((vni . "9") (telex . "d")) im))
+            (triggers
+             (split-string (map-elt viet-im--explicit-triggers im) "" t)))
+       (cons
+        im
+        (rx-to-string
+         `(seq
+           bow ; word start
+           ;; Leading consonants
+           (? (or ,(concat "d" d-trigger) "qu" "gi" ,@viet-im--prefix-consonants))
+           ;; Vowels mixed with triggers
+           (* (or ,@viet-im--vowels ,@triggers))
+           ;; Trailing consonants
+           (?  (or ,@viet-im--suffix-consonants))
+           ;; Triggers at end
+           (* (or ,@triggers)))
+         t))))
+   '(vni telex)))
 
 (defun viet-im--replace-maybe ()
   "Replace some chars before point with appropriate intended diacritics."
-  (let* ((word-beg
-          (save-excursion
-            (skip-chars-backward
-             (concat
-              "[:alpha:]"
-              (map-elt viet-im--triggers viet-im--current-input-method)))
-            (point)))
-         (whole-candidate (buffer-substring word-beg (point))))
+  (when-let* ((im viet-im--current-input-method)
+              ;; Must be a monosyllabic word, as polysyllabic words aren't
+              ;; Vietnamese
+              (_
+               (looking-back (map-elt viet-im--uncomposed-syllable-regexp im)
+                             (pos-bol)
+                             t))
+              (word-beg (match-beginning 0))
+              (whole-candidate (buffer-substring word-beg (point))))
     ;; Try from longest to shortest potential strings before point until one
     ;; matches a rule, e.g.  "abc"|, "bc"|, "c"|.
     (named-let recur ((try-from 0))
       (when (< try-from (length whole-candidate))
         (let* ((cand (substring whole-candidate try-from))
-               (result
-                (map-nested-elt
-                 viet-im--rules-table
-                 (list viet-im--current-input-method cand))))
+               (result (map-nested-elt viet-im--rules-table (list im cand))))
           (cond
            (result
             (delete-char (- try-from (length whole-candidate)))
-            (insert result))
+            (insert result)
+            result)
            (:else
             (recur (+ 1 try-from)))))))))
 
 (defun viet-im-mode--post-self-insert-h ()
   "Run `viet-im--replace-maybe' after trigger char."
   ;; Only proceed if a triggering char has been insert
-  (when (seq-position
-         (map-elt viet-im--triggers viet-im--current-input-method) last-command-event)
+  (when (or (seq-position
+             (map-elt
+              viet-im--explicit-triggers viet-im--current-input-method)
+             last-command-event)
+            ;; TODO: should we just consider explicit triggers + all alphabetic?
+            (seq-position
+             (map-elt
+              viet-im--implicit-triggers viet-im--current-input-method)
+             last-command-event))
     (viet-im--replace-maybe)))
 
 (defun viet-im--deactivate ()

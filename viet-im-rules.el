@@ -23258,6 +23258,44 @@
 				      ))))
   "Association list of input method names (as symbols) and their rules (as hash tables).")
 
+(defvar viet-im--prefix-consonants '("qu"
+				     "gi"
+				     "b"
+				     "c"
+				     "ch"
+				     "d"
+				     "g"
+				     "gh"
+				     "gr"
+				     "h"
+				     "k"
+				     "kh"
+				     "l"
+				     "m"
+				     "n"
+				     "ng"
+				     "ngh"
+				     "nh"
+				     "p"
+				     "ph"
+				     "r"
+				     "s"
+				     "t"
+				     "th"
+				     "tr"
+				     "v"
+				     "x"
+				     "đ"))
+
+(defvar viet-im--suffix-consonants '("c"
+				     "ch"
+				     "m"
+				     "n"
+				     "ng"
+				     "nh"
+				     "p"
+				     "t"))
+
 ;;; viet-im-rules ends here
 
 (provide 'viet-im-rules)

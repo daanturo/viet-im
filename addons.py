@@ -9,21 +9,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-import main
-
-
-def dict_diff(dict1, dict2):
-    diff1 = dict()
-    diff2 = dict()
-    for key in set(list(dict1.keys()) + list(dict2.keys())):
-        val1 = dict1.get(key)
-        val2 = dict2.get(key)
-        if val1 != val2:
-            if key in dict1:
-                diff1[key] = val1
-            if key in dict2:
-                diff2[key] = val2
-    return [dict(sorted(diff1.items())), dict(sorted(diff2.items()))]
+import core
 
 
 def compare_with_floris_telex():
@@ -44,7 +30,7 @@ def compare_with_floris_telex():
         for (k, v) in json.loads(Path(generated_file).read_text()).items()
         if not re.search(r"^[dđ][^dđ]", k)
     }
-    diff_lst = dict_diff(generated, floris)
+    diff_lst = core.dict_diff(generated, floris)
     Path("generated-rules-diff-this-telex-vs-floris-telex.json").write_text(
         json.dumps(
             {
@@ -61,7 +47,7 @@ def write_emacs_quail_rules():
     """Problem with quail: after finishing a diacritic, typing more won't
     modify the word, unless exhaustively listing all variants.
     """
-    rules = main.make_im_vni(main.get_full_rhyme_table())
+    rules = core.make_im_vni(core.get_full_rhyme_table())
     # Prioritize longer?
     keys = sorted(rules.keys(), key=lambda s: (-len(s), s))
     with open("temp-vn-vni-x.el", "w") as f:
@@ -114,9 +100,9 @@ def dict_to_emacs_hash_table(hmap: dict, indent=2) -> str:
 
 
 def write_emacs_package_rules_file():
-    rhyme_table = main.get_full_rhyme_table()
-    rules_vni = main.make_im_vni(rhyme_table)
-    rules_telex = main.make_im_telex(rhyme_table)
+    rhyme_table = core.get_full_rhyme_table()
+    rules_vni = core.make_im_vni(rhyme_table)
+    rules_telex = core.make_im_telex(rhyme_table)
     rules_file = "viet-im-rules.el"
     with open(rules_file, "w", encoding="utf8") as f:
         f.write(";; -*- lexical-binding: t -*-" + "\n\n")
@@ -134,6 +120,19 @@ def write_emacs_package_rules_file():
             + dict_to_emacs_hash_table(rules_telex)
             + """))
             "Association list of input method names (as symbols) and their rules (as hash tables).")
+
+(defvar viet-im--prefix-consonants '("""
+            + "\n".join(
+                f'"{s}"'
+                for s in (["qu", "gi"] + core.get_words_and_rhymes()["prefix_consonants"])
+            )
+            + """))
+
+(defvar viet-im--suffix-consonants '("""
+            + "\n".join(
+                f'"{s}"' for s in (core.get_words_and_rhymes()["suffix_consonants"])
+            )
+            + """))
 
 ;;; viet-im-rules ends here
 
@@ -154,8 +153,8 @@ def write_emacs_package_rules_file():
 
 
 def write_floris_vni_extension():
-    rules = main.make_im_vni()
-    groups = main.group_rules_for_write(rules.keys())
+    rules = core.make_im_vni()
+    groups = core.group_rules_for_write(rules.keys())
     indent_str = " " * 8  # depend on inserting position below
     rules_str = (
         "\n".join(
@@ -208,10 +207,3 @@ def write_floris_vni_extension():
     if zipped_content != extension_data:
         with zipfile.ZipFile("floris-im-vni-extension.flex", "w") as zaf:
             zaf.write(non_zipped_extension_file, arcname="extension.json")
-
-
-if __name__ == "__main__":
-    compare_with_floris_telex()
-    # write_emacs_quail_rules()
-    write_floris_vni_extension()
-    write_emacs_package_rules_file()

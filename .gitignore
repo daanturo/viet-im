@@ -5,3 +5,4 @@ __pycache__
 extension.json
 *.zip
 *-autoloads.el
+temp/
