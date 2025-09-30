@@ -14,19 +14,19 @@
 ;; allows modifying diacritics after the word is completed, as a result no
 ;; pre-edit underlines are shown as well.
 
+;; Supported input methods: VNI, Telex.
+
 ;; (1) See: https://en.wikipedia.org/wiki/VNI#VNI_Tan_Ky, in this
 ;; package that flexibility of order is applicable to Telex as well.
 
 ;;; Code:
 
-(require 'cl-macs)
+(require 'cl-lib)
 (require 'map)
 
 (require 'viet-im-rules)
 
-(defgroup viet-im nil
-  "Type Vietnamese."
-  :group 'i18n)
+;; (defgroup viet-im nil "Type Vietnamese." :group 'leim) ; restore group when there is a customizable option
 
 ;;;; Process
 
@@ -38,15 +38,27 @@
 (defconst viet-im--explicit-triggers
   '((vni . "0123456789") (telex . "adefjorswxz") (viqr . "(^+`'?~.0")))
 
+(defconst viet-im--last-char-triggers
+  (seq-map
+   (lambda (im)
+     (let* ((chars
+             (seq-uniq
+              (seq-map (lambda (str) (substring str -1))
+                       (map-keys (map-elt viet-im--rules-table im))))))
+       (cons im (regexp-opt chars))))
+   '(vni telex))
+  "Association list of IM - trigger regexp.
+Each regexp is an \"or\" of the rules's last entered characters, so that
+the input method knows when to search.")
+
 (defconst viet-im--vowels
-  (progn
-    (concat
-     "aăâeêioôơuưy"
-     "àằầèềìòồờùừỳ"
-     "áắấéếíóốớúứý"
-     "ãẵẫẽễĩõỗỡũữỹ"
-     "ạặậẹệịọộợụựỵ"
-     "ảẳẩẻểỉỏổởủửỷ")))
+  (concat
+   "aăâeêioôơuưy"
+   "àằầèềìòồờùừỳ"
+   "áắấéếíóốớúứý"
+   "ãẵẫẽễĩõỗỡũữỹ"
+   "ạặậẹệịọộợụựỵ"
+   "ảẳẩẻểỉỏổởủửỷ"))
 
 (defconst viet-im--uncomposed-syllable-regexp
   (mapcar
@@ -73,11 +85,11 @@
 (defun viet-im--replace-maybe ()
   "Replace some chars before point with appropriate intended diacritics."
   (when-let* ((im viet-im--current-input-method)
-              ;; Vietnamese words are monosyllabic word
-              (syllable-re (map-elt viet-im--uncomposed-syllable-regexp im))
+              ;; Vietnamese words are monosyllabic
+              (candidate-re (map-elt viet-im--uncomposed-syllable-regexp im))
               (_
                (dlet ((case-fold-search t))
-                 (looking-back syllable-re (pos-bol) 'greedy)))
+                 (looking-back candidate-re (pos-bol) 'greedy)))
               (word-beg (match-beginning 0))
               (orig-len (- (point) word-beg))
               (orig-candidate (buffer-substring word-beg (point)))
@@ -99,15 +111,9 @@
 
 (defun viet-im-mode--post-self-insert-h ()
   "Run `viet-im--replace-maybe' after trigger char."
-  ;; Proceed if a triggering, or alphabetic character (for diacritics changing
-  ;; outside of IM-defined rules) has been inserted.  Ideally the condition
-  ;; should be more selective but there hasn't been a performance downgrade
-  ;; detected yet.
-  (when (or (seq-position
-             (map-elt
-              viet-im--explicit-triggers viet-im--current-input-method)
-             last-command-event)
-            (string-match "[[:alpha:]]" (char-to-string last-command-event)))
+  (when (string-match
+         (map-elt viet-im--last-char-triggers viet-im--current-input-method)
+         (char-to-string last-command-event))
     (viet-im--replace-maybe)))
 
 (defun viet-im--deactivate ()

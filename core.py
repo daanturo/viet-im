@@ -663,9 +663,9 @@ def _make_im_case(im_name: str, rhyme_table: dict, pre: str, rhyme: str, rules: 
 
 
 def _diacritic_changes_when_insert():
-    """Define rules about diacritic changes when adding a character that's even
-    not a trigger.  Example: "úa"+b->"uấn".  Those rules must have lower
-    priority than IM-defined compositing trigger rules."""
+    """Define rules about diacritic changes when adding a character that's not a
+    trigger.  Those rules must have lower priority than IM-defined compositing
+    trigger rules.  Example: "úa"+n->"uán", "óo"->"oó"."""
     prelim_table = get_preliminary_table()
     rhymes = prelim_table.keys()
     pairs = [
@@ -683,7 +683,7 @@ def _diacritic_changes_when_insert():
         tone_pos_in_long_1 = prelim_table[long]["tone_position"] + 1
         tone_pos_in_short_1 = prelim_table[short]["tone_position"] + 1
         new_no_tone = remove_string_tone_diacritics(short) + base_inserting_char
-        # New partial rhyme = old without tone + new with tone without
+        # New partial rhyme = short old without tone + new with tone & without
         # alphabetic diacritic, if this partial rhyme is valid, use it, else use
         # the version with alphabetic diacritic.  Example: "óa"->"oá", but
         # "ứo"->"ướ".
