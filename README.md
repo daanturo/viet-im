@@ -17,7 +17,7 @@ Then call `set-input-method`/`toggle-input-method` (`toggle-input-method` need p
 
 The package currently supports VNI, Telex (secondary), VIQR and other input methods aren't planned at the moment.  VIQR is conceptually similar to VNI and Telex, the only (IIRC) difference among the 3 IMs is at triggering characters so adding support for it shouldn't be hard if needed.
 
-Related issue: [https://lists.gnu.org/archive/html/help-gnu-emacs/2025-09/msg00205.html](https://yhetil.org/emacs/86a52lej8i.fsf@gnu.org/)
+Related issue: [https://lists.gnu.org/archive/html/help-gnu-emacs/2025-09/msg00205.html](https://yhetil.org/emacs/86a52lej8i.fsf@gnu.org/).  [Tan Ky mode](https://en.wikipedia.org/wiki/VNI#VNI_Tan_Ky) is supported for both VNI and Telex, allows typing diacritics anywhere after the base letters.
 
 # How to generate rules
 

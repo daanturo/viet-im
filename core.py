@@ -117,6 +117,8 @@ TONE_TABLE = {
     },
 }
 
+DIACRITIC_REMOVER = {"im_vni": "0", "im_telex": "z"}
+
 _TONE_AS_CHAR_STRINGS = [
     chr(v["code_point"]) for v in TONE_TABLE.values() if v["code_point"]
 ]
@@ -723,20 +725,27 @@ def _diacritic_changes_when_insert():
     return rules
 
 
-def _make_im(
+def _make_im_rules(
     im_name: str,
-    rhyme_table: dict,
+    full_rhyme_table: dict,
     initial_rules: dict,
 ):
     rules = initial_rules
     d_trigger = LEAD_DIACRITICS["d"][im_name]
-    for rhyme in rhyme_table.keys():
+    z0 = DIACRITIC_REMOVER[im_name]
+    for rhyme in full_rhyme_table.keys():
+        rhyme_obj = Rhyme(rhyme)
         # Handle "đ"
         if rhyme[0] in VOWEL_LETTERS:
             rules["d" + rhyme + d_trigger] = "đ" + rhyme  # "d" to "đ"
             rules["đ" + rhyme + d_trigger] = "d" + rhyme + d_trigger  # undo
+            # Typing "0"/"z" consecutively: after removing tone, remove
+            # rhyme's alphabetic diacritics, then "đ" to "d"
+            if rhyme_obj._alphabet_diacritic_name and not rhyme_obj._marked_tone_name:
+                rules[rhyme + z0] = rhyme_obj.ascii
+            rules["đ" + rhyme_obj.ascii + z0] = "d" + rhyme_obj.ascii
         for pre in ["", *COMBINATIVE_CONSONANTS_WITH_VOWEL_LETTERS]:
-            res = _make_im_case(im_name, rhyme_table, pre, rhyme, rules)
+            res = _make_im_case(im_name, full_rhyme_table, pre, rhyme, rules)
             if isinstance(res, dict):
                 rules |= res
         if re.search(r"^ư[ơớờởỡợ].", rhyme):
@@ -747,7 +756,7 @@ def _make_im(
             # But not "quơ"+any -> "qươ"+anh
             rules["qu" + rhyme[1:3]] = "qu" + rhyme[1:3]
             # Prevent "quo"+horn -> "qươ"
-            if rhyme_table.get(remove_string_tone_diacritics(rhyme_from_o)):
+            if full_rhyme_table.get(remove_string_tone_diacritics(rhyme_from_o)):
                 rhyme_from_o_no_horn = remove_string_alphabet_diacritics(rhyme_from_o)
                 for i in range(1, len(rhyme_from_o) + 1):
                     sub_rhyme = rhyme_from_o_no_horn[:i]
@@ -770,21 +779,21 @@ def _make_im(
     return rules
 
 
-def make_im_vni(rhyme_table=None):
-    rhyme_table = rhyme_table or get_full_rhyme_table()
+def make_im_vni(full_rhyme_table=None):
+    full_rhyme_table = full_rhyme_table or get_full_rhyme_table()
     rules = {
         "d9": "đ",
         "đ9": "d9",
         "dd9": "dd9",  # is this necessary?
     }
-    rules = _make_im("im_vni", rhyme_table, rules)
+    rules = _make_im_rules("im_vni", full_rhyme_table, rules)
     with open("generated-im-vni.json", "w") as f:
         json.dump(rules, f, ensure_ascii=False, indent=2)
     return rules
 
 
-def make_im_telex(rhyme_table=None):
-    rhyme_table = rhyme_table or get_full_rhyme_table()
+def make_im_telex(full_rhyme_table=None):
+    full_rhyme_table = full_rhyme_table or get_full_rhyme_table()
     """Currently not supported: repositioning tones ("ghìê": "ghiề", etc.), it's
     weird, why not type diacritics at the end of word?"""
     rules = {
@@ -794,7 +803,7 @@ def make_im_telex(rhyme_table=None):
         "w": "ư",
         "ưw": "w",
     }
-    rules = _make_im("im_telex", rhyme_table, rules)
+    rules = _make_im_rules("im_telex", full_rhyme_table, rules)
     with open("generated-im-telex.json", "w") as f:
         json.dump(rules, f, ensure_ascii=False, indent=2)
     return rules
