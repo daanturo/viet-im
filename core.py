@@ -23,19 +23,19 @@ ALLOW_FREE_TONE = True
 ## * Constants
 
 # huyền hỏi ngã sắc nặng
-TONE_LIST = ["grave", "hook", "perispomeni", "acute", "dot_below"]
+TONE_LIST = ["grave", "hook", "tilde", "acute", "dot_below"]
 
 NO_TONE_VOWEL_LETTERS = "aăâeêioôơuưy"
 TONE_GRAVE_LETTERS = "àằầèềìòồờùừỳ"
 TONE_HOOK_LETTERS = "ảẳẩẻểỉỏổởủửỷ"
-TONE_PERISPOMENI_LETTERS = "ãẵẫẽễĩõỗỡũữỹ"
+TONE_TILDE_LETTERS = "ãẵẫẽễĩõỗỡũữỹ"
 TONE_ACUTE_LETTERS = "áắấéếíóốớúứý"
 TONE_DOT_BELOW_LETTERS = "ạặậẹệịọộợụựỵ"
 
 TONAL_VOWEL_LETTERS = (
     TONE_GRAVE_LETTERS
     + TONE_HOOK_LETTERS
-    + TONE_PERISPOMENI_LETTERS
+    + TONE_TILDE_LETTERS
     + TONE_ACUTE_LETTERS
     + TONE_DOT_BELOW_LETTERS
 )
@@ -103,7 +103,7 @@ TONE_TABLE = {
         "im_vni": "3",
         "im_telex": "r",
     },
-    "perispomeni": {
+    "tilde": {
         "code_point": 0x0303,
         "name": "ngã",
         "im_vni": "4",
@@ -288,7 +288,7 @@ def is_valid_tone(tone_name, suffix_consonant_part):
     return ALLOW_FREE_TONE or (
         # huyền, hỏi, ngã can't go together with certain suffixing consonants
         not (
-            tone_name in ["grave", "perispomeni", "hook"]
+            tone_name in ["grave", "tilde", "hook"]
             and suffix_consonant_part
             in [
                 "c",
@@ -496,7 +496,7 @@ class Rhyme:
     unmarked = None
     grave = None
     hook = None
-    perispomeni = None
+    tilde = None
     acute = None
     dot_below = None
 
@@ -540,7 +540,7 @@ class Rhyme:
 
         self.grave = self.with_tone("grave")
         self.hook = self.with_tone("hook")
-        self.perispomeni = self.with_tone("perispomeni")
+        self.tilde = self.with_tone("tilde")
         self.acute = self.with_tone("acute")
         self.dot_below = self.with_tone("dot_below")
 
