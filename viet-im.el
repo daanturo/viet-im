@@ -89,7 +89,7 @@ the input method knows when to search.")
               (candidate-re (map-elt viet-im--uncomposed-syllable-regexp im))
               (_
                (dlet ((case-fold-search t))
-                 (looking-back candidate-re (pos-bol) 'greedy)))
+                 (looking-back candidate-re (- (point) 13) 'greedy)))
               (word-beg (match-beginning 0))
               (orig-len (- (point) word-beg))
               (orig-candidate (buffer-substring word-beg (point)))
