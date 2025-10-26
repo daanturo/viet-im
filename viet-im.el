@@ -19,6 +19,9 @@
 ;; (1) See: https://en.wikipedia.org/wiki/VNI#VNI_Tan_Ky, in this
 ;; package that flexibility of order is applicable to Telex as well.
 
+;; Usage note: don't use `activate-transient-input-method', due this method's
+;; continuous nature, it's pretty much undefined when to deactivate.
+
 ;;; Code:
 
 (require 'cl-lib)
@@ -104,8 +107,8 @@ the input method knows when to search.")
            (result
             ;; Opt to not handle letter cases manually, note that match data
             ;; must be unchanged between `looking-back' above and this
-            (replace-match
-             (concat (substring orig-candidate 0 try-from) result)))
+            (replace-match (concat (substring orig-candidate 0 try-from) result))
+            result)
            (:else
             (recur (+ 1 try-from)))))))))
 
